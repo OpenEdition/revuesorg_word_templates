@@ -6,12 +6,11 @@ Private wordLang As String
 Private os As String
 
 Private Function getWordLang() As String
-' https://technet.microsoft.com/en-us/library/cc287874%28v=office.12%29.aspx
-    currentLanguageCode = Selection.LanguageID
-    Select Case currentLanguageCode
-        Case 1033
+    ' https://msdn.microsoft.com/en-us/library/aa432635%28v=office.12%29.aspx
+    Select Case Application.Language
+    Case msoLanguageIDEnglishAUS, msoLanguageIDEnglishBelize, msoLanguageIDEnglishCanadian, msoLanguageIDEnglishCaribbean, msoLanguageIDEnglishIndonesia, msoLanguageIDEnglishIreland, msoLanguageIDEnglishJamaica, msoLanguageIDEnglishNewZealand, msoLanguageIDEnglishPhilippines, msoLanguageIDEnglishSouthAfrica, msoLanguageIDEnglishTrinidadTobago, msoLanguageIDEnglishUK, msoLanguageIDEnglishUS, msoLanguageIDEnglishZimbabwe
             getWordLang = "en"
-        Case 1036
+        Case msoLanguageIDFrench, msoLanguageIDFrenchCameroon, msoLanguageIDFrenchCanadian, msoLanguageIDFrenchCotedIvoire, msoLanguageIDFrenchHaiti, msoLanguageIDFrenchLuxembourg, msoLanguageIDFrenchMali, msoLanguageIDFrenchMonaco, msoLanguageIDFrenchMorocco, msoLanguageIDFrenchReunion, msoLanguageIDFrenchSenegal, msoLanguageIDFrenchWestIndies, msoLanguageIDFranchCongoDRC, msoLanguageIDBelgianFrench, msoLanguageIDSwissFrench
             getWordLang = "fr"
         Case Else
             getWordLang = "en" ' default
@@ -142,7 +141,7 @@ End Sub
 Sub AutoExec()
 	' Testing OS: http://www.rondebruin.nl/mac/mac001.htm
 	' TODO: A tester sur mac
-	#If Mac Then
+    #If Mac Then
         os = "mac"
     #Else
         os = "win"
