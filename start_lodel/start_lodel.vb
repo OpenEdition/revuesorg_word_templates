@@ -101,7 +101,8 @@ Sub doStart(lang As String)
 	Dim tpl As String
 	Dim macro As String
 	
-	tpl = Options.DefaultFilePath(Path:=wdUserTemplatesPath) + "/revuesorg_" + lang + ".dot"
+    ' TODO: tester les paths sur OS X
+	tpl = Options.DefaultFilePath(Path:=wdUserTemplatesPath) + "\revuesorg_" + lang + ".dot"
 	macro = Options.DefaultFilePath(Path:=wdUserTemplatesPath) + "\macros_revuesorg_" + os + ".dot"
     
 	If ActiveWindow.View.SplitSpecial = wdPaneNone Then
