@@ -1,5 +1,6 @@
 ' Déclarations
 
+' NOTE: translations.ini doit être encodé en UTF16-LE ou ANSI
 Declare Function GetPrivateProfileString Lib "kernel32" Alias _
     "GetPrivateProfileStringA" (ByVal lpApplicationName As String, _
         ByVal lpKeyName As Any, ByVal lpDefault As String, _
