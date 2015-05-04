@@ -10,15 +10,42 @@ Public GeneratorPath As String
 Public IniPath As String
 Public BasePath As String
 Public BuildPath As String
-Public DestLang As String
+Public TmpPath As String
+' Public DestLang As String ' FIXME: obsolete
+Public DestLanguages() As String
 Public ProcessedDoc As Document
 
 Private Function init()
     GeneratorPath = Options.DefaultFilePath(Path:=wdUserTemplatesPath) + "\generator"
     IniPath = GeneratorPath + "\src\translations.ini"
     BasePath = GeneratorPath + "\src\base.dot"
+    TmpPath = GeneratorPath + "\tmp"
     BuildPath = GeneratorPath + "\build"
-	DestLang = askForLang()
+    ' DestLang = askForLang() ' FIXME: obsolete
+    Call getLanguagesFromIni
+End Function
+
+' FIXME: Obsolete. Maintenant on boucle sur toutes les langues
+Private Function askForLang()
+    Dim inputData As String
+    inputData = InputBox("Taper le code de langue de destination du modèle. La langue doit être déclérée dans le fichier translations.ini.", "Sélection de la langue")
+    If inputData <> "" Then ' TODO: tester aussi l'existence de la langue dans l'INI
+        askForLang = inputData
+    End If
+End Function
+
+' Retourne un tableau de codes de langues tiré du INI
+' Usage :
+    'Dim intCount As Integer
+    'For intCount = LBound(DestLanguages) To UBound(DestLanguages)
+    '    Debug.Print Trim(DestLanguages(intCount))
+    'Next
+Private Function getLanguagesFromIni()
+    Dim strLanguages As String
+    Dim intCount As Integer
+
+    strLanguages = getIniValue("_configuration", "translateTo") ' TODO: Harmonsier l'écriture des variables
+    DestLanguages() = Split(strLanguages, ", ")
 End Function
 
 ' Lire les fichiers INI
@@ -56,47 +83,86 @@ Private Function getIniValue(section As String, key As String)
     getIniValue = GetSectionEntry(section, key, IniPath)
 End Function
 
-' Opérations
+' File operations
 
-Private Function createNewDoc()
-    Set ProcessedDoc = Documents.Add(BasePath, True, , True)
+Private Function copyAndOpen(src As String, dest As String)
+    FileCopy src, dest
+    Set ProcessedDoc = Documents.Open(FileName:=dest, Visible:=True) ' TODO: Visible := False
 End Function
 
-Private Function renameBaseStyles(lang As String)
-	Dim newName As String
-	Dim key As String
-	key = lang + ".style"
-	For Each style in ActiveDocument.Styles
-		If style.BuiltIn = False Then ' TODO: il faut tester l'existence dans l'ini. Toutes les entrées qui n'existent pas seront préservées (index en d'autres langues par exemple) 
-			newName = getIniValue(style.NameLocal, key)
-			style.NameLocal = newName
-		End If
-	Next style
+Private Function saveAndClose(doc As Document)
+    doc.Save
+    doc.Close
 End Function
 
-Private Function askForLang()
-	' TODO: pas bon car tous les modeles doivent contenir tous les styles. Il faudra faire un for each sur toutes les langues de l'ini quand le reste sera au point
-    askForLang = InputBox("Taper le code de langue de destination du modèle. La langue doit être déclérée dans le fichier translations.ini.", "Sélection de la langue")
+' Traduction des styles
+' 1. Renommer les styles déjà présents dans base.dot d'après le fichier INI = BaseStyle. C'est l'entrée "style" sans prefixe de chaque section qui est utilisée (=français).
+' 2. Pour chaque langue, regarder si une traduction existe dans le INI. Si elle existe et aucun style à son nom n'existe alors on le créée. Le style créé est hérité du BaseStyle.
+Private Function renameBaseStylesAndTranslate()
+    Dim styleId As String
+    Dim newName As String
+    Dim intCount As Integer
+    Dim currentLang As String
+
+    For Each Style In ActiveDocument.Styles ' FIXME: ActiveDocument ok ?
+        If Style.BuiltIn = False Then
+            ' Renommer le BaseStyle
+            styleId = Style.NameLocal
+            newName = getIniValue(styleId, "style")
+            If newName <> vbNullChar Then
+                Debug.Print "newName " + newName
+                Style.NameLocal = newName
+            End If
+            ' Le dupliquer en autant de traductions que nécessaire
+            For intCount = LBound(DestLanguages) To UBound(DestLanguages)
+                currentLang = Trim(DestLanguages(intCount))
+                translateStyle Style.NameLocal, styleId, currentLang
+            Next
+        End If
+    Next Style
 End Function
 
-' Exécutables
+Private Function translateStyle(baseStyleName As String, styleId As String, lang As String)
+    Dim translatedName As String
+    Dim key As String
+    Dim styleAdded As Style
 
-Sub testNewAndSave()
-    Call init
-    createNewDoc
-    ProcessedDoc.Save
-End Sub
-
-Sub testNewAndRename()
-    Call init
-    Call createNewDoc
-    renameBaseStyles(DestLang)
-End Sub
-
-Sub testLang()
-	Dim inputData As String
-	inputData = askForLang()
-	If inputData <> "" Then
-        MsgBox inputData
+    key = lang + ".style"
+    translatedName = getIniValue(styleId, key)
+    If translatedName = vbNullChar Or styleExists(translatedName) Then
+        Exit Function
+    Else
+        ' FIXME: ActiveDocument ok ?
+        Set styleAdded = ActiveDocument.Styles.Add(Name:=translatedName, _
+            Type:=wdStyleTypeParagraph)
+        styleAdded.baseStyle = baseStyleName
     End If
+End Function
+
+Private Function styleExists(StyleName As String) As Boolean
+    Dim MyStyle As Word.Style
+    On Error Resume Next
+    Set MyStyle = ActiveDocument.Styles(StyleName) ' FIXME: ActiveDocument ok ?
+    styleExists = Not MyStyle Is Nothing
+End Function
+
+' Si nécessaire (traduction différente) copier les styles de base et traduire la copie
+Private Function translateStyles(lang As String)
+    Dim newName As String
+    Dim key As String
+    key = lang + ".style"
+    For Each Style In ActiveDocument.Styles
+        If Style.BuiltIn = False Then ' TODO: il faut tester l'existence dans l'ini. Toutes les entrées qui n'existent pas seront préservées (index en d'autres langues par exemple)
+            newName = getIniValue(Style.NameLocal, key)
+            Style.NameLocal = newName
+        End If
+    Next Style
+End Function
+
+' Tests
+Sub test()
+    Call init
+    copyAndOpen BasePath, TmpPath + "\test.dot"
+    Call renameBaseStylesAndTranslate
+    saveAndClose ProcessedDoc
 End Sub

@@ -17,7 +17,7 @@ Private Function GetSectionEntry(ByVal strSectionName As String, ByVal strEntry 
     Dim sSection As String, sEntry As String, sDefault As String
     Dim sRetBuf As String, iLenBuf As Integer, sFileName As String
     Dim sValue As String
-    
+
     On Error GoTo ErrGetSectionentry
     sSection = strSectionName
     sEntry = strEntry
@@ -28,13 +28,14 @@ Private Function GetSectionEntry(ByVal strSectionName As String, ByVal strEntry 
     X = GetPrivateProfileString(sSection, sEntry, _
     "", sRetBuf, iLenBuf, sFileName)
     sValue = Strings.Trim(Strings.Left$(sRetBuf, X))
-    
+
     If sValue <> "" Then
     GetSectionEntry = sValue
     Else
+    MsgBox ("La valeur n'existe pas")
     GetSectionEntry = vbNullChar
     End If
-    
+
 ErrGetSectionentry:
     If Err <> 0 Then
     Err.Clear
