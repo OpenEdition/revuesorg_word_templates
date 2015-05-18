@@ -1,4 +1,4 @@
-' Internationalization macros
+' Test 0 - Internationalization macros
 ' Word native styles application regardless of application localization
 
 Sub applywdStyleTitle()

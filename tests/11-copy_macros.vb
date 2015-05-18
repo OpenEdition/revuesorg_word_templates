@@ -1,5 +1,6 @@
 ' Test 11
 ' Copier une macro d'un doc à un autre
+' FIXME: Ne fonctionne pas à tout les coups !?? Ca semble venir de la gestion des autorisations de Word.
 
 Public GeneratorPath As String
 Public BasePath As String

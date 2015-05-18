@@ -20,11 +20,10 @@ Macro Word pour générer des versions linguisitiques des modèles à partir d'u
 5. Pour chaque langue déclarée dans generator/src/translations.ini :
     1. Copier generator/tmp/styles.dot > generator/build/revuesorg_[langue].dot
     2. Ouvrir generator/build/revuesorg_[langue].dot
-    3. Copier tous les styles de generator/tmp/styles.dot dans generator/build/revuesorg_[langue].dot
-    4. Copier la macro d'application des styles dans generator/build/revuesorg_[langue].dot
-    5. Traduire la barre d'outil de generator/build/revuesorg_[langue].dot d'après le fichier generator/src/translations.ini et éditer les attributs `OnAction`, `Tag` et/ou `Parameter`.
-    6. Assigner les raccourcis clavier (?).
-    7. Sauvegarder et fermer generator/build/revuesorg_[langue].dot.
+    3. ~~Copier la macro d'application des styles dans generator/build/revuesorg_[langue].dot~~ La copie de macro ne fonctionne pas à tous les coups (probablement à cause des autorisations dans Word). Il faut que cette macro soit initialement présente dans base.dot.
+    4. Traduire la barre d'outil de generator/build/revuesorg_[langue].dot d'après le fichier generator/src/translations.ini et éditer les attributs `OnAction`, `Tag` et/ou `Parameter`.
+    5. Assigner les raccourcis clavier (?).
+    6. Sauvegarder et fermer generator/build/revuesorg_[langue].dot.
 6. Afficher un message de fin de traitement.
 
 TODO: générer un log des traductions opérées par la macro.
