@@ -6,7 +6,7 @@ Macro Word pour générer des versions linguisitiques des modèles à partir d'u
 
 1. Placer le dossier generator dans le répertoire des modèles de Word.
 2. Editer les styles et les menus de generator/src/base.dot. Les noms utilisés pour les styles et les menus doivent correspondre aux identifiants déclarés dans le fichier translations.ini.
-3. Editer les traduction dans generator/src/translations.ini. Attention : ce fichier doit impérativement être encodé en ANSI ou UTF-16-LE.
+3. Editer les traduction dans generator/src/translations.ini.
 4. Lancer la macro.
 
 ## Todolist de développement

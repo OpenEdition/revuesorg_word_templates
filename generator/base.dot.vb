@@ -8,9 +8,15 @@ Sub ApplyLodelStyle()
     If ctlCBarControl Is Nothing Then Exit Sub
 
     parameter = ctlCBarControl.parameter
-    If ctlCBarControl.parameter <> "" Then
-        Selection.Range.Style = parameter
+    If parameter <> "" Then
         Debug.Print "Application de " + parameter ' TODO: supprimer ce message
+		If IsNumeric(parameter) Then 
+			' BuiltIn Word style
+			Selection.Range.Style = CInt(parameter)
+		Else
+			' User defined style
+			Selection.Range.Style = parameter
+        End If
     Else
         Debug.Print "Le menu ne comporte pas de parametre."
     End If

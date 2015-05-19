@@ -3,7 +3,6 @@
 Const TOOLBARNAME As String = "LodelStyles"
 Const MACRONAME As String = "ApplyLodelStyle"
 
-' NOTE: translations.ini doit être encodé en UTF16-LE ou ANSI
 Declare Function GetPrivateProfileString Lib "kernel32" Alias _
     "GetPrivateProfileStringA" (ByVal lpApplicationName As String, _
         ByVal lpKeyName As Any, ByVal lpDefault As String, _
@@ -12,6 +11,7 @@ Declare Function GetPrivateProfileString Lib "kernel32" Alias _
 
 Public GeneratorPath As String
 Public IniPath As String
+Public AnsiIniPath As String
 Public BasePath As String
 Public BuildPath As String
 Public TmpPath As String
@@ -22,11 +22,30 @@ Public ProcessedDoc As Document
 Private Function init()
     GeneratorPath = Options.DefaultFilePath(Path:=wdUserTemplatesPath) + "\generator"
     IniPath = GeneratorPath + "\src\translations.ini"
+	AnsiIniPath = GeneratorPath + "\tmp\translations-ansi.ini"
     BasePath = GeneratorPath + "\src\base.dot"
     TmpPath = GeneratorPath + "\tmp"
     BuildPath = GeneratorPath + "\build"
     LogFilePath = BuildPath + "\log.txt"
     Call getLanguagesFromIni
+End Function
+
+' Convertir un fichier encodé en Unicode en ANSI
+Private Function unicode2ansi(source As String, dest As String)
+    Dim strText
+    With CreateObject("ADODB.Stream")
+        .Type = 2
+        .Charset = "utf-8"
+        .Open 
+        .LoadFromFile source
+        strText = .ReadText(-1)
+        .Position = 0
+        .SetEOS
+        .Charset = "_autodetect_all"
+        .WriteText strText, 0
+        .SaveToFile dest, 2
+        .Close
+    End With
 End Function
 
 ' Retourne un tableau de codes de langues tiré du INI
@@ -73,9 +92,7 @@ ErrGetSectionentry:
 End Function
 
 Private Function getIniValue(section As String, key As String)
-    Dim sIniPath
-    Dim ret
-    getIniValue = GetSectionEntry(section, key, IniPath)
+    getIniValue = GetSectionEntry(section, key, AnsiIniPath)
 End Function
 
 ' File operations
@@ -101,7 +118,7 @@ Private Function saveAndClose(doc As Document)
     doc.Close
 End Function
 
-Private Function closeAll() 
+Private Function closeAll() ' FIXME: risque de poser probleme si on utilise le modele en tant que modele. Plutôt associé en macro ?
     With Application 
         .ScreenUpdating = False 
         Do Until .Documents.Count = 0 
@@ -128,7 +145,6 @@ End Function
 ' Traduction des styles
 ' 1. Renommer les styles déjà présents dans base.dot d'après le fichier INI = BaseStyle. C'est l'entrée "style" sans prefixe de chaque section qui est utilisée (=français).
 ' 2. Pour chaque langue, regarder si une traduction existe dans le INI. Si elle existe et aucun style à son nom n'existe alors on le créée. Le style créé est hérité du BaseStyle. 
-' FIXME: traiter fr
 Private Function renameBaseStylesAndTranslate()
 	Dim styleId As String
 	Dim newName As String
@@ -154,10 +170,10 @@ Private Function renameBaseStylesAndTranslate()
             If newName <> vbNullChar Then
                 ProcessedDoc.Styles(styleId).NameLocal = newName
 			Else
+				newName = styleId
 				writeLog "!!! Le style " + styleId + " n'a aucune traduction par défaut"
             End If
             ' Le dupliquer en autant de traductions que nécessaire
-			' FIXME: Les styles étant créés dans ActiveDocument cela interfère avec la boucle en cours.
             For intCount = LBound(DestLanguages) To UBound(DestLanguages)
                 currentLang = Trim(DestLanguages(intCount))
                 translateStyle newName, styleId, currentLang
@@ -167,7 +183,7 @@ Private Function renameBaseStylesAndTranslate()
 	baseDocument.Close
 End Function
 
-Private Function translateStyle(baseStyleName As String, styleId As String, lang As String)
+Private Function translateStyle(baseStyleName As String, styleId As String, lang As String) ' TODO: doc en param
     Dim translatedName As String
     Dim key As String
     Dim styleAdded As Style
@@ -178,18 +194,36 @@ Private Function translateStyle(baseStyleName As String, styleId As String, lang
         writeLog "Le style " + baseStyleName + " n'a aucune traduction[" + lang + "]. La traduction par défaut est utilisée." 
         Exit Function
     Else
-        ' FIXME: ActiveDocument ok ? Passer le doc en param de la func pour lever l'ambiguité
         Set styleAdded = ProcessedDoc.Styles.Add(Name:=translatedName, _
             Type:=wdStyleTypeParagraph)
         styleAdded.baseStyle = baseStyleName
     End If
 End Function
 
-Private Function styleExists(styleName As String) As Boolean
+Private Function styleExists(styleName As String) As Boolean ' TODO: doc en param
     Dim MyStyle As Word.Style
     On Error Resume Next
-    Set MyStyle = ProcessedDoc.Styles(styleName) ' FIXME: ActiveDocument ok ? Passer le doc en param de la func pour lever l'ambiguité
+    Set MyStyle = ProcessedDoc.Styles(styleName)
     styleExists = Not MyStyle Is Nothing
+End Function
+
+' Nettoyage des styles (supprimer "Car")
+' Obsolete (directement nettoyés dans base.dot)
+Function cleanStyles(doc As Document)
+	Dim sty As Style
+	For Each sty In doc.Styles
+		If sty.BuiltIn = False And sty.NameLocal Like "* Car*" Then
+			deleteChar sty, doc
+		End If
+	Next sty
+End Function
+
+Function deleteChar(styleToDel As Style, doc As Document)
+    Dim styl As Style
+    Set styl = doc.Styles.Add(Name:="Style1")
+    On Error Resume Next
+    styleToDel.LinkStyle = styl
+    styl.Delete
 End Function
 
 ' Barre d'outils
@@ -219,6 +253,7 @@ Private Function processSubmenu(submenu, lang As String)
     Dim menuName As String
     Dim styleName As String
     Dim menuId As String
+	Dim wordId As String
     
     ' Traduire le caption du menu
     menuName = getIniValue(submenu.caption, lang + ".menu")
@@ -257,17 +292,23 @@ Private Function processSubmenu(submenu, lang As String)
 
         ' Assigner .parameter (qui doit être le nom du style à appliquer)
         If Ctl.Type = msoControlButton Then
-            styleName = getIniValue(menuId, lang + ".style")
-            If styleName = vbNullChar Then
-                styleName = getIniValue(menuId, "style")
-            End If
-            If styleName = vbNullChar Then
-                styleName = Ctl.caption
-            End If
-            If Not styleExists(styleName) Then
-                writeLog "!!! Le style " + styleName + " associé au menu " + menuName + "[" + lang + "] n'existe pas. L'utilisation de ce bouton produira une erreur."
-            End If
-            Ctl.parameter = styleName
+			' Si possible on utilise les identifiants numériques de word pour les styles natifs. Voir : https://msdn.microsoft.com/en-us/library/bb237495%28v=office.12%29.aspx
+			wordId = getIniValue(menuId, "wordId")
+			If wordId <> vbNullChar Then
+				Ctl.parameter = wordId
+			Else
+				styleName = getIniValue(menuId, lang + ".style")
+				If styleName = vbNullChar Then
+					styleName = getIniValue(menuId, "style")
+				End If
+				If styleName = vbNullChar Then
+					styleName = Ctl.caption
+				End If
+				If Not styleExists(styleName) Then
+					writeLog "!!! Le style " + styleName + " associé au menu " + menuName + "[" + lang + "] n'existe pas. L'utilisation de ce bouton produira une erreur."
+				End If
+				Ctl.parameter = styleName
+			End If
         End If
     Next Ctl
 End Function
@@ -278,7 +319,10 @@ Sub TraduireLesStyles()
 	Call closeAll
     Call init
     Call openLog
-    copyAndOpen BasePath, TmpPath + "\styles.dot"
+	' Convert INI encoding
+	unicode2ansi IniPath, AnsiIniPath
+	' TODO : idealement il faudrait juste copier les styles qui nous interessent de base.dot à styles.dot pour pas récupérer des indésirables. Le cas échéant, on pourrait copier comme doc de départ un doc vierge contenant la macro d'application des styles.
+    copyAndOpen BasePath, TmpPath + "\styles.dot"	
     Call renameBaseStylesAndTranslate
     saveAndClose ProcessedDoc
 End Sub
