@@ -132,6 +132,9 @@ End Function
 Private Function openLog()
     DeleteFile LogFilePath
     Open LogFilePath For Append As #1
+	Print #1, "GENERATOR.DOT : LOG DES ERREURS RENCONTREES (" + Format(Now, "ddddd ttttt") + ")"
+	Print #1, "================================="
+	Print #1, ""
 End Function
 
 Private Function writeLog(msg As String)
@@ -151,6 +154,7 @@ Private Function renameBaseStylesAndTranslate()
     Dim intCount As Integer
     Dim currentLang As String
 	Dim baseDocument As Document
+	Dim hasDefaultTranslation As Boolean
 
 	writeLog "╔═══════════════════════╗"
 	writeLog "║ TRADUCTION DES STYLES ║"
@@ -162,28 +166,27 @@ Private Function renameBaseStylesAndTranslate()
     For Each Style In baseDocument.Styles
         If Style.BuiltIn = False Then
 			styleId = Style.NameLocal
-			writeLog ""
-			writeLog "Traduction de " + styleId ' TODO: sortir un CSV des traductions
-			writeLog "----------"
             ' Renommer le BaseStyle
             newName = getIniValue(styleId, "style")
             If newName <> vbNullChar Then
                 ProcessedDoc.Styles(styleId).NameLocal = newName
+				hasDefaultTranslation = true
 			Else
 				newName = styleId
-				writeLog "!!! Le style " + styleId + " n'a aucune traduction par défaut"
+				hasDefaultTranslation = false
             End If
             ' Le dupliquer en autant de traductions que nécessaire
             For intCount = LBound(DestLanguages) To UBound(DestLanguages)
                 currentLang = Trim(DestLanguages(intCount))
-                translateStyle newName, styleId, currentLang
+                translateStyle newName, styleId, currentLang, hasDefaultTranslation
             Next
         End If
     Next Style
 	baseDocument.Close
+	writeLog "Traduction des styles terminée."
 End Function
 
-Private Function translateStyle(baseStyleName As String, styleId As String, lang As String) ' TODO: doc en param
+Private Function translateStyle(baseStyleName As String, styleId As String, lang As String, hasDefaultTranslation As Boolean) ' TODO: doc en param
     Dim translatedName As String
     Dim key As String
     Dim styleAdded As Style
@@ -191,7 +194,9 @@ Private Function translateStyle(baseStyleName As String, styleId As String, lang
     key = lang + ".style"
     translatedName = getIniValue(styleId, key)
     If translatedName = vbNullChar Or styleExists(translatedName) Then
-        writeLog "Le style " + baseStyleName + " n'a aucune traduction[" + lang + "]. La traduction par défaut est utilisée." 
+		If hasDefaultTranslation = False Then
+			writeLog "Le style '" + baseStyleName + "' n'a pas pu être traduit en langue " + lang 
+		End If
         Exit Function
     Else
         Set styleAdded = ProcessedDoc.Styles.Add(Name:=translatedName, _
@@ -246,6 +251,7 @@ Private Function processToolbar(lang As String)
 		Next Ctl
 	End If
 	Next Cmdbar
+	writeLog "Traduction du menu en langue " + lang + " terminée."
 End Function
 
 ' Fonction récursive de traitement des sous menus
@@ -263,7 +269,7 @@ Private Function processSubmenu(submenu, lang As String)
     If menuName <> vbNullChar Then
         submenu.caption = menuName
     Else
-        writeLog "!!! Le sous-menu " + submenu.caption + "[" + lang + "] n'a aucune traduction"
+        writeLog "Le sous-menu '" + submenu.caption + "' n'a pas pu être traduit en langue " + lang
     End If
     
     For Each Ctl In submenu.Controls
@@ -287,27 +293,29 @@ Private Function processSubmenu(submenu, lang As String)
         If menuName <> vbNullChar Then
             Ctl.caption = menuName
         Else
-            writeLog "!!! Le bouton " + menuId + "[" + lang + "] n'a aucune traduction"
+            writeLog "Le bouton '" + menuId + "' n'a pas pu être traduit en langue " + lang
         End If
 
         ' Assigner .parameter (qui doit être le nom du style à appliquer)
         If Ctl.Type = msoControlButton Then
-			' Si possible on utilise les identifiants numériques de word pour les styles natifs. Voir : https://msdn.microsoft.com/en-us/library/bb237495%28v=office.12%29.aspx
-			wordId = getIniValue(menuId, "wordId")
-			If wordId <> vbNullChar Then
-				Ctl.parameter = wordId
-			Else
-				styleName = getIniValue(menuId, lang + ".style")
-				If styleName = vbNullChar Then
-					styleName = getIniValue(menuId, "style")
+			If Ctl.HyperlinkType <> msoCommandBarButtonHyperlinkOpen Then ' Ne pas écraser les boutons de liens hypertextes
+				' Si possible on utilise les identifiants numériques de word pour les styles natifs. Voir : https://msdn.microsoft.com/en-us/library/bb237495%28v=office.12%29.aspx
+				wordId = getIniValue(menuId, "wordId")
+				If wordId <> vbNullChar Then
+					Ctl.parameter = wordId
+				Else
+					styleName = getIniValue(menuId, lang + ".style")
+					If styleName = vbNullChar Then
+						styleName = getIniValue(menuId, "style")
+					End If
+					If styleName = vbNullChar Then
+						styleName = Ctl.caption
+					End If
+					If Not styleExists(styleName) Then
+						writeLog "Le style '" + styleName + "' associé au bouton '" + menuName + "' en langue " + lang + " n'existe pas. L'utilisation de ce bouton produira une erreur"
+					End If
+					Ctl.parameter = styleName
 				End If
-				If styleName = vbNullChar Then
-					styleName = Ctl.caption
-				End If
-				If Not styleExists(styleName) Then
-					writeLog "!!! Le style " + styleName + " associé au menu " + menuName + "[" + lang + "] n'existe pas. L'utilisation de ce bouton produira une erreur."
-				End If
-				Ctl.parameter = styleName
 			End If
         End If
     Next Ctl
