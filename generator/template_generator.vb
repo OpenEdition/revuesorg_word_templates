@@ -188,6 +188,7 @@ Private Function renameBaseStylesAndTranslate()
 	writeLog ""
 
 	' Afin de ne pas créer d'interférences, on boucle sur les styles de base.dot et on modifie ceux d'ActiveDocument
+    ' TODO : idealement il faudrait juste copier les styles qui nous interessent (= ceux déclarés dans translations.ini) de base.dot à styles.dot pour pas récupérer des indésirables (ex: Car). Le cas échéant, on pourrait copier comme doc de départ un doc vierge contenant la macro d'application des styles.
 	Set baseDocument = Documents.Open(FileName:=BasePath, Visible:=False)
     For Each Style In baseDocument.Styles
         If Style.BuiltIn = False Then
@@ -397,31 +398,40 @@ Private Function processSubmenu(submenu, lang As String)
     Next Ctl
 End Function
 
-' Tests
+' Subs exposées
+' ==========
 
-Sub TraduireLesStyles()
-	Call closeAll
+' Ajouter un bouton à Word pour lancer runGenerator()
+Sub AutoExec()
+    Dim menuBar As CommandBar
+    Dim menuItem As CommandBarControl
+    Set menuBar = CommandBars.Add(menuBar:=False, Position:=msoBarTop, Name:="Template generator", Temporary:=True)
+    menuBar.Visible = True
+    Set menuItem = menuBar.Controls.Add(Type:=msoControlButton)
+    With menuItem
+        .Caption = "Générer les modèles traduits"
+        .OnAction = "runGenerator"
+        .Style = msoButtonCaption
+    End With
+End Sub
+
+' Lancer la génération des modèles
+Sub runGenerator()
+    Dim currentLang As String
+    ' Initialisation
+    Call closeAll
     Call init
     Call openLog
-	' Convert INI encoding
+    ' Convertir l'encodage des fichiers INI
 	unicode2ansi IniPath, AnsiIniPath
     unicode2ansi EnumerationsPath, AnsiEnumerationsPath
-	' TODO : idealement il faudrait juste copier les styles qui nous interessent de base.dot à styles.dot pour pas récupérer des indésirables. Le cas échéant, on pourrait copier comme doc de départ un doc vierge contenant la macro d'application des styles.
+    ' Copier base.dot et enregistrer la copie dans tmp/styles.dot
     copyAndOpen BasePath, TmpPath + "\styles.dot"
+    ' Operations sur tmp/styles.dot : traduire les styles et nettoyer tous les keybindings
     Call renameBaseStylesAndTranslate
     Call clearAllKeybindings
     saveAndClose ProcessedDoc
-End Sub
-
-Sub en()
-    Call TraduireLesStyles
-    copyAndOpen TmpPath + "\styles.dot", BuildPath + "\revuesorg_en.dot"
-    processToolbar "en"
-End Sub
-
-Sub Tout()
-    Dim currentLang As String
-    Call TraduireLesStyles
+    ' Création d'un modele par langue déclarée : traduction de la toolbar, attribution des actions et des keybindings
     For intCount = LBound(DestLanguages) To UBound(DestLanguages)
         currentLang = Trim(DestLanguages(intCount))
         If currentLang <> "" Then
@@ -430,5 +440,7 @@ Sub Tout()
             saveAndClose ProcessedDoc
         End If
     Next
+    ' Fin
     Call closeLog
+    MsgBox "Les modèles ont été générés dans le dossier generator/build/." + Chr(10) + Chr(10) + "Merci de vérfier qu'aucune erreur n'a été rencontrée en consultant le journal generator/build/log.txt.", 64, "Opération terminée avec succès"
 End Sub

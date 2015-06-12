@@ -62,4 +62,4 @@ Remarque : les sections des sous-menus doivent être préfixés par `menu_`. Exe
     6. Sauvegarder et fermer `generator/build/revuesorg_[langue].dot`.
 6. Afficher un message de fin de traitement.
 
-**TODO: Générer un log des traductions opérées par la macro.**
+Remarque pour intégrer le VBA dans Word : le code doit être inséré dans le document en tant que module : Alt+F11, clic droit sur le projet correspondant au document qui doit contenir la macro, Insertion > Module, coller le code. 
