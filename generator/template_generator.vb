@@ -1,8 +1,17 @@
+'╔═══════════════════════════════════════════════════════╗
+'║                 template_generator.vb                 ║
+'║                 =====================                 ║
+'║ Génération et traduction automatisées de modèles Word ║
+'║ https://github.com/brrd/revuesorg_word_templates      ║
+'╚═══════════════════════════════════════════════════════╝
+
 ' Déclarations
+' ==========
 
 Const TOOLBARNAME As String = "LodelStyles"
 Const MACRONAME As String = "ApplyLodelStyle"
 
+' Utilisé pour gérer les fichiers INI
 Declare Function GetPrivateProfileString Lib "kernel32" Alias _
     "GetPrivateProfileStringA" (ByVal lpApplicationName As String, _
         ByVal lpKeyName As Any, ByVal lpDefault As String, _
@@ -12,6 +21,8 @@ Declare Function GetPrivateProfileString Lib "kernel32" Alias _
 Public GeneratorPath As String
 Public IniPath As String
 Public AnsiIniPath As String
+Public EnumerationsPath As String
+Public AnsiEnumerationsPath As String
 Public BasePath As String
 Public BuildPath As String
 Public TmpPath As String
@@ -23,6 +34,8 @@ Private Function init()
     GeneratorPath = Options.DefaultFilePath(Path:=wdUserTemplatesPath) + "\generator"
     IniPath = GeneratorPath + "\src\translations.ini"
 	AnsiIniPath = GeneratorPath + "\tmp\translations-ansi.ini"
+    EnumerationsPath = GeneratorPath + "\utils\enumerations.ini"
+    AnsiEnumerationsPath = GeneratorPath + "\tmp\enumerations.ini"
     BasePath = GeneratorPath + "\src\base.dot"
     TmpPath = GeneratorPath + "\tmp"
     BuildPath = GeneratorPath + "\build"
@@ -30,13 +43,16 @@ Private Function init()
     Call getLanguagesFromIni
 End Function
 
+' Fichiers INI
+' ==========
+
 ' Convertir un fichier encodé en Unicode en ANSI
 Private Function unicode2ansi(source As String, dest As String)
     Dim strText
     With CreateObject("ADODB.Stream")
         .Type = 2
         .Charset = "utf-8"
-        .Open 
+        .Open
         .LoadFromFile source
         strText = .ReadText(-1)
         .Position = 0
@@ -63,7 +79,6 @@ Private Function getLanguagesFromIni()
 End Function
 
 ' Lire les fichiers INI
-
 Private Function GetSectionEntry(ByVal strSectionName As String, ByVal strEntry As String, ByVal strIniPath As String) As String
     Dim X As Long
     Dim sSection As String, sEntry As String, sDefault As String
@@ -91,11 +106,18 @@ ErrGetSectionentry:
     End If
 End Function
 
+' Lire translations.ini
 Private Function getIniValue(section As String, key As String)
     getIniValue = GetSectionEntry(section, key, AnsiIniPath)
 End Function
 
+' Lire enumerations.ini
+Private Function getEnumeration(section As String, key As String)
+    getEnumeration = GetSectionEntry(section, key, AnsiEnumerationsPath)
+End Function
+
 ' File operations
+' ===========
 
 Private Function FileExists(ByVal FileToTest As String) As Boolean
    FileExists = (Dir(FileToTest) <> "")
@@ -119,15 +141,16 @@ Private Function saveAndClose(doc As Document)
 End Function
 
 Private Function closeAll() ' FIXME: risque de poser probleme si on utilise le modele en tant que modele. Plutôt associé en macro ?
-    With Application 
-        .ScreenUpdating = False 
-        Do Until .Documents.Count = 0 
-            .Documents(1).Close SaveChanges:=wdDoNotSaveChanges 
-        Loop 
-    End With 
-End Function 
+    With Application
+        .ScreenUpdating = False
+        Do Until .Documents.Count = 0
+            .Documents(1).Close SaveChanges:=wdDoNotSaveChanges
+        Loop
+    End With
+End Function
 
 ' Log
+' ==========
 
 Private Function openLog()
     DeleteFile LogFilePath
@@ -146,8 +169,11 @@ Private Function closeLog()
 End Function
 
 ' Traduction des styles
+' ==========
 ' 1. Renommer les styles déjà présents dans base.dot d'après le fichier INI = BaseStyle. C'est l'entrée "style" sans prefixe de chaque section qui est utilisée (=français).
-' 2. Pour chaque langue, regarder si une traduction existe dans le INI. Si elle existe et aucun style à son nom n'existe alors on le créée. Le style créé est hérité du BaseStyle. 
+' 2. Pour chaque langue, regarder si une traduction existe dans le INI. Si elle existe et aucun style à son nom n'existe alors on le créée. Le style créé est hérité du BaseStyle.
+' TODO: 1 et 2 à modifier, on n'utilise plus le défaut
+
 Private Function renameBaseStylesAndTranslate()
 	Dim styleId As String
 	Dim newName As String
@@ -160,7 +186,7 @@ Private Function renameBaseStylesAndTranslate()
 	writeLog "║ TRADUCTION DES STYLES ║"
 	writeLog "╚═══════════════════════╝"
 	writeLog ""
-	
+
 	' Afin de ne pas créer d'interférences, on boucle sur les styles de base.dot et on modifie ceux d'ActiveDocument
 	Set baseDocument = Documents.Open(FileName:=BasePath, Visible:=False)
     For Each Style In baseDocument.Styles
@@ -195,7 +221,7 @@ Private Function translateStyle(baseStyleName As String, styleId As String, lang
     translatedName = getIniValue(styleId, key)
     If translatedName = vbNullChar Or styleExists(translatedName) Then
 		If hasDefaultTranslation = False Then
-			writeLog "Le style '" + baseStyleName + "' n'a pas pu être traduit en langue " + lang 
+			writeLog "Le style '" + baseStyleName + "' n'a pas pu être traduit en langue " + lang
 		End If
         Exit Function
     Else
@@ -212,24 +238,57 @@ Private Function styleExists(styleName As String) As Boolean ' TODO: doc en para
     styleExists = Not MyStyle Is Nothing
 End Function
 
-' Nettoyage des styles (supprimer "Car")
-' Obsolete (directement nettoyés dans base.dot)
-Function cleanStyles(doc As Document)
-	Dim sty As Style
-	For Each sty In doc.Styles
-		If sty.BuiltIn = False And sty.NameLocal Like "* Car*" Then
-			deleteChar sty, doc
-		End If
-	Next sty
+' Keybindings (fonctions)
+' ==========
+
+' Génère un keyCode reconnu par Word à partir d'une chaîne du type "Ctrl+Alt+A"
+' Voir le test 18 pour plus de détails
+Private Function getKeyCode(keyString As String)
+    Dim keys() As String
+    Dim i As Integer
+    Dim key As String
+    Dim keyCode As String
+    Dim sum As Long
+    sum = 0
+    keys = Split(keyString, "+")
+    For i = 0 To UBound(keys)
+        key = Trim(keys(i))
+        keyCode = getEnumeration("keys", key)
+        If (keyCode <> vbNullChar) Then
+            sum = sum + CInt(keyCode)
+        Else
+            writeLog "Erreur : '" + key + "' n'est pas une touche valide"
+            getKeyCode = 0
+        End If
+    Next i
+    getKeyCode = sum
 End Function
 
-Function deleteChar(styleToDel As Style, doc As Document)
-    Dim styl As Style
-    Set styl = doc.Styles.Add(Name:="Style1")
-    On Error Resume Next
-    styleToDel.LinkStyle = styl
-    styl.Delete
+Private Function addStyleKeyBinding(styleName As String, keyString As String)
+    Dim keyCode As Long
+    keyCode = getKeyCode(keyString)
+    If keyCode = 0 Then
+        Exit Function
+    End If
+    ' Dans le cas d'un identifiant numerique il faut retrouver le nom du style
+    If IsNumeric(styleName) Then
+        styleName = ActiveDocument.Styles(CInt(styleName)).NameLocal
+    End If
+    CustomizationContext = ActiveDocument
+    KeyBindings.Add KeyCategory:=wdKeyCategoryStyle, _
+        Command:=styleName, _
+        keyCode:=keyCode
 End Function
+
+' Une fonction pour supprimer tous les raccourcis clavier utilisateur d'un template
+Private Function clearAllKeybindings()
+    CustomizationContext = ActiveDocument
+    KeyBindings.ClearAll
+End Function
+
+' Traduction des menus et assignation des keybindings
+' ==========
+' TODO: ajouter une traduction des builtInStyles dans chacun des modeles linguisitiques. Ca sert pas a grand chose car les builtIn prennent la langue de Word, mais c'est plus propre car harmonisé
 
 ' Barre d'outils
 ' Fonction principale de traitement de la barre d'outil
@@ -254,13 +313,14 @@ Private Function processToolbar(lang As String)
 	writeLog "Traduction du menu en langue " + lang + " terminée."
 End Function
 
-' Fonction récursive de traitement des sous menus
+' Fonction récursive de traitement des sous menus et assignation des raccourcis clavier
 Private Function processSubmenu(submenu, lang As String)
     Dim menuName As String
     Dim styleName As String
     Dim menuId As String
 	Dim wordId As String
-    
+    Dim key As String
+
     ' Traduire le caption du menu
     menuName = getIniValue(submenu.caption, lang + ".menu")
     If menuName = vbNullChar Then
@@ -271,7 +331,8 @@ Private Function processSubmenu(submenu, lang As String)
     Else
         writeLog "Le sous-menu '" + submenu.caption + "' n'a pas pu être traduit en langue " + lang
     End If
-    
+
+    ' On boucle sur les enfants du menu'
     For Each Ctl In submenu.Controls
         menuId = Ctl.caption
 
@@ -280,7 +341,7 @@ Private Function processSubmenu(submenu, lang As String)
             If Ctl.HyperlinkType <> msoCommandBarButtonHyperlinkOpen Then ' Ne pas écraser les boutons de liens hypertextes
                 Ctl.OnAction = MACRONAME
             End If
-        ElseIf Ctl.Type = msoControlPopup Then
+        ElseIf Ctl.Type = msoControlPopup Then ' FIXME : il faut grouper ça avec If Ctl.Type = msoControlButton Then ligne 356 sans quoi la fonction continue après processSubmenu
             ' Récursif sur les sous menus
             processSubmenu Ctl, lang
         End If
@@ -316,6 +377,21 @@ Private Function processSubmenu(submenu, lang As String)
 					End If
 					Ctl.parameter = styleName
 				End If
+
+                ' Assigner le keybinding s'il existe
+                ' Remarque : on n'ecrit rien dans le log concernant les keybindings pour éviter de le poluer
+                ' TODO: serait bien de factoriser cette operation qui apparait plusieurs fois (fallback langue par defaut)
+                key = getIniValue(menuId, lang + ".key")
+                If key = vbNullChar Then
+                    key = getIniValue(menuId, "key")
+                End If
+                If key <> vbNullChar Then
+                    If wordId <> vbNullChar Then
+                        addStyleKeyBinding wordId, key
+                    Else
+                        addStyleKeyBinding styleName, key
+                    End If
+                End If
 			End If
         End If
     Next Ctl
@@ -329,9 +405,11 @@ Sub TraduireLesStyles()
     Call openLog
 	' Convert INI encoding
 	unicode2ansi IniPath, AnsiIniPath
+    unicode2ansi EnumerationsPath, AnsiEnumerationsPath
 	' TODO : idealement il faudrait juste copier les styles qui nous interessent de base.dot à styles.dot pour pas récupérer des indésirables. Le cas échéant, on pourrait copier comme doc de départ un doc vierge contenant la macro d'application des styles.
-    copyAndOpen BasePath, TmpPath + "\styles.dot"	
+    copyAndOpen BasePath, TmpPath + "\styles.dot"
     Call renameBaseStylesAndTranslate
+    Call clearAllKeybindings
     saveAndClose ProcessedDoc
 End Sub
 
@@ -346,9 +424,11 @@ Sub Tout()
     Call TraduireLesStyles
     For intCount = LBound(DestLanguages) To UBound(DestLanguages)
         currentLang = Trim(DestLanguages(intCount))
-        copyAndOpen TmpPath + "\styles.dot", BuildPath + "\revuesorg_" + currentLang + ".dot"
-        processToolbar currentLang
-        saveAndClose ProcessedDoc
+        If currentLang <> "" Then
+            copyAndOpen TmpPath + "\styles.dot", BuildPath + "\revuesorg_" + currentLang + ".dot"
+            processToolbar currentLang
+            saveAndClose ProcessedDoc
+        End If
     Next
     Call closeLog
 End Sub

@@ -95,12 +95,10 @@ End Sub
 
 ' Ajouter avec le nom du style (CTRL + ALT + A)
 Sub test()
-    Dim key As Long
     addStyleKeyBinding "Titre 2", "Control+Alt+A" ' Ce n'est pas sensible à la casse !
 End Sub
 
 ' Ajouter avec l'identifiant du style natif (CTRL + ALT + A)
 Sub test2()
-    Dim key As Long
     addStyleKeyBinding "-2", "control+Alt+A" ' -2 => Titre 1
 End Sub
