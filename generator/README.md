@@ -5,7 +5,7 @@ Macro Word pour générer des versions linguisitiques des modèles à partir d'u
 ## Utilisation
 
 1. Placer le dossier generator dans le répertoire des modèles de Word.
-2. Editer les styles et les menus de `generator/src/base.dot`. Les noms utilisés pour les styles et les menus doivent correspondre aux identifiants déclarés dans le fichier `translations.ini`.
+2. Editer les styles et les menus de `generator/src/base.dot`. Les noms utilisés pour les styles et les menus doivent correspondre aux identifiants déclarés dans le fichier `translations.ini`. Tous les styles supplémentaires présents dans `base.dot` seront copiés dans les modèles, il est donc important de nettoyer correctement ce modèle. Si nécessaire (notamment pour nettoyer les styles " Car Car") on pourra utiliser la macro "style management.dot" : http://h2fooko.free.fr/spip.php?article19
 3. Editer les traduction dans `generator/src/translations.ini`.
 4. Lancer la macro.
 
@@ -62,4 +62,4 @@ Remarque : les sections des sous-menus doivent être préfixés par `menu_`. Exe
     6. Sauvegarder et fermer `generator/build/revuesorg_[langue].dot`.
 6. Afficher un message de fin de traitement.
 
-Remarque pour intégrer le VBA dans Word : le code doit être inséré dans le document en tant que module : Alt+F11, clic droit sur le projet correspondant au document qui doit contenir la macro, Insertion > Module, coller le code. 
+Remarque pour intégrer le VBA dans Word : le code doit être inséré dans le document en tant que module : Alt+F11, clic droit sur le projet correspondant au document qui doit contenir la macro, Insertion > Module, coller le code.
