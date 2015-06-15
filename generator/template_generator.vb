@@ -116,6 +116,16 @@ Private Function getEnumeration(section As String, key As String)
     getEnumeration = GetSectionEntry(section, key, AnsiEnumerationsPath)
 End Function
 
+' Récupérer la valeur d'une clé linguistique (ex: fr.menu), sinon la valeur par défaut (ex: menu)
+Private Function getTranslation(section As String, key As String, lang As String)
+    Dim value As String
+    value = getIniValue(section, lang + "." + key)
+    If value = vbNullChar Then
+        value = getIniValue(section, key)
+    End If
+    getTranslation = value
+End Function
+
 ' File operations
 ' ===========
 
@@ -323,10 +333,7 @@ Private Function processSubmenu(submenu, lang As String)
     Dim key As String
 
     ' Traduire le caption du menu
-    menuName = getIniValue(submenu.caption, lang + ".menu")
-    If menuName = vbNullChar Then
-        menuName = getIniValue(submenu.caption, "menu")
-    End If
+    menuName = getTranslation(submenu.caption, "menu", lang)
     If menuName <> vbNullChar Then
         submenu.caption = menuName
     Else
@@ -337,39 +344,32 @@ Private Function processSubmenu(submenu, lang As String)
     For Each Ctl In submenu.Controls
         menuId = Ctl.caption
 
-        ' Attacher les actions
-        If Ctl.Type = msoControlButton Then
-            If Ctl.HyperlinkType <> msoCommandBarButtonHyperlinkOpen Then ' Ne pas écraser les boutons de liens hypertextes
-                Ctl.OnAction = MACRONAME
-            End If
-        ElseIf Ctl.Type = msoControlPopup Then ' FIXME : il faut grouper ça avec If Ctl.Type = msoControlButton Then ligne 356 sans quoi la fonction continue après processSubmenu
-            ' Récursif sur les sous menus
+        ' Si Ctl est un sous menu alors appel recursif de la fonction
+        If Ctl.Type = msoControlPopup Then
             processSubmenu Ctl, lang
-        End If
+        ' Si Ctl est un control...
+        ElseIf Ctl.Type = msoControlButton Then
 
-        ' Traduire le caption du controle
-        menuName = getIniValue(menuId, lang + ".menu")
-        If menuName = vbNullChar Then
-            menuName = getIniValue(menuId, "menu")
-        End If
-        If menuName <> vbNullChar Then
-            Ctl.caption = menuName
-        Else
-            writeLog "Le bouton '" + menuId + "' n'a pas pu être traduit en langue " + lang
-        End If
+            ' Traduire le caption du controle
+            menuName = getTranslation(menuId, "menu", lang)
+            If menuName <> vbNullChar Then
+                Ctl.caption = menuName
+            Else
+                writeLog "Le bouton '" + menuId + "' n'a pas pu être traduit en langue " + lang
+            End If
 
-        ' Assigner .parameter (qui doit être le nom du style à appliquer)
-        If Ctl.Type = msoControlButton Then
-			If Ctl.HyperlinkType <> msoCommandBarButtonHyperlinkOpen Then ' Ne pas écraser les boutons de liens hypertextes
-				' Si possible on utilise les identifiants numériques de word pour les styles natifs. Voir : https://msdn.microsoft.com/en-us/library/bb237495%28v=office.12%29.aspx
+            ' La suite ne concerne pas les boutons qui contiennent un lien hypertexte
+            If Ctl.HyperlinkType <> msoCommandBarButtonHyperlinkOpen Then
+
+                ' Attacher la macro d'application de styles
+                Ctl.OnAction = MACRONAME
+
+                ' Assigner le parameter qui sera transmis a la macro d'application de styles
 				wordId = getIniValue(menuId, "wordId")
 				If wordId <> vbNullChar Then
 					Ctl.parameter = wordId
 				Else
-					styleName = getIniValue(menuId, lang + ".style")
-					If styleName = vbNullChar Then
-						styleName = getIniValue(menuId, "style")
-					End If
+                    styleName = getTranslation(menuId, "style", lang)
 					If styleName = vbNullChar Then
 						styleName = Ctl.caption
 					End If
@@ -381,11 +381,7 @@ Private Function processSubmenu(submenu, lang As String)
 
                 ' Assigner le keybinding s'il existe
                 ' Remarque : on n'ecrit rien dans le log concernant les keybindings pour éviter de le poluer
-                ' TODO: serait bien de factoriser cette operation qui apparait plusieurs fois (fallback langue par defaut)
-                key = getIniValue(menuId, lang + ".key")
-                If key = vbNullChar Then
-                    key = getIniValue(menuId, "key")
-                End If
+                key = getTranslation(menuId, "key", lang)
                 If key <> vbNullChar Then
                     If wordId <> vbNullChar Then
                         addStyleKeyBinding wordId, key
@@ -393,7 +389,7 @@ Private Function processSubmenu(submenu, lang As String)
                         addStyleKeyBinding styleName, key
                     End If
                 End If
-			End If
+            End If
         End If
     Next Ctl
 End Function
