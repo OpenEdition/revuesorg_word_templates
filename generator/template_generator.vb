@@ -197,8 +197,7 @@ Private Function renameBaseStylesAndTranslate()
 	writeLog "╚═══════════════════════╝"
 	writeLog ""
 
-	' Afin de ne pas créer d'interférences, on boucle sur les styles de base.dot et on modifie ceux d'ActiveDocument
-    ' TODO : idealement il faudrait juste copier les styles qui nous interessent (= ceux déclarés dans translations.ini) de base.dot à styles.dot pour pas récupérer des indésirables (ex: Car). Le cas échéant, on pourrait copier comme doc de départ un doc vierge contenant la macro d'application des styles.
+	' Afin de ne pas créer d'interférences avec la boucle en cours, on boucle sur les styles de base.dot et on modifie ceux d'ActiveDocument
 	Set baseDocument = Documents.Open(FileName:=BasePath, Visible:=False)
     For Each Style In baseDocument.Styles
         If Style.BuiltIn = False Then
