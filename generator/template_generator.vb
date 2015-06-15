@@ -185,41 +185,57 @@ End Function
 ' TODO: 1 et 2 à modifier, on n'utilise plus le défaut
 
 Private Function renameBaseStylesAndTranslate()
-	Dim styleId As String
-	Dim newName As String
     Dim intCount As Integer
     Dim currentLang As String
 	Dim baseDocument As Document
-	Dim hasDefaultTranslation As Boolean
 
 	writeLog "╔═══════════════════════╗"
 	writeLog "║ TRADUCTION DES STYLES ║"
 	writeLog "╚═══════════════════════╝"
 	writeLog ""
 
-	' Afin de ne pas créer d'interférences avec la boucle en cours, on boucle sur les styles de base.dot et on modifie ceux d'ActiveDocument
-	Set baseDocument = Documents.Open(FileName:=BasePath, Visible:=False)
+    Set baseDocument = Documents.Open(FileName:=BasePath, Visible:=False)
+    ' Traductions par défaut
+    renameStyles baseDocument
+    ' Traductions linguisitique pour chaque langue
+    For intCount = LBound(DestLanguages) To UBound(DestLanguages)
+        ' A chaque fois copier tous les styles depuis base.dot
+        ProcessedDoc.CopyStylesFromTemplate _
+            Template:=BasePath
+        currentLang = Trim(DestLanguages(intCount))
+        ' Puis renommer les styles en fonction de translations.ini
+        renameStyles baseDocument, currentLang
+    Next
+	baseDocument.Close
+    ' Supprimer tous les styles préfixés ($) résiduels
+    Call cleanPrefixedStyles
+	writeLog "Traduction des styles terminée."
+End Function
+
+Private Function renameStyles(baseDocument As Document, Optional lang As String = "")
+    Dim styleId As String
+    Dim newName As String
+    Dim defaultName As String
+    ' Eviter les problemes en ne modifiant pas le document sur lequel on est en train de boucler
     For Each Style In baseDocument.Styles
+        ' On ne traduit pas les styles natifs de Word car ils sont automatiquement adaptés à la langue de l'utilisateur
         If Style.BuiltIn = False Then
-			styleId = Style.NameLocal
-            ' Renommer le BaseStyle
-            newName = getIniValue(styleId, "style")
-            If newName <> vbNullChar Then
-                ProcessedDoc.Styles(styleId).NameLocal = newName
-				hasDefaultTranslation = true
-			Else
-				newName = styleId
-				hasDefaultTranslation = false
+            styleId = Style.NameLocal
+            defaultName = getIniValue(styleId, "style")
+            If lang = "" Then
+                newName = defaultName
+            Else
+                newName = getIniValue(styleId, lang + ".style")
             End If
-            ' Le dupliquer en autant de traductions que nécessaire
-            For intCount = LBound(DestLanguages) To UBound(DestLanguages)
-                currentLang = Trim(DestLanguages(intCount))
-                translateStyle newName, styleId, currentLang, hasDefaultTranslation
-            Next
+            If newName <> vbNullChar Then
+                If Not styleExists(newName) Then ProcessedDoc.Styles(styleId).NameLocal = newName
+			Else
+                If lang <> "" And defaultName = vbNullChar Then
+                    writeLog "Le style '" + styleId + "' n'a pas pu être traduit en langue " + lang
+                End If
+            End If
         End If
     Next Style
-	baseDocument.Close
-	writeLog "Traduction des styles terminée."
 End Function
 
 Private Function translateStyle(baseStyleName As String, styleId As String, lang As String, hasDefaultTranslation As Boolean) ' TODO: doc en param
@@ -239,6 +255,17 @@ Private Function translateStyle(baseStyleName As String, styleId As String, lang
             Type:=wdStyleTypeParagraph)
         styleAdded.baseStyle = baseStyleName
     End If
+End Function
+
+' Nettoyer les styles prefixés avec $ à la fin du traitement (il s'agit des styles qui n'ont pas de traduction par défaut)
+Private Function cleanPrefixedStyles()
+    Dim firstChar As String
+    For Each sty In ActiveDocument.Styles
+        If sty.BuiltIn = False Then
+            firstChar = Left(sty.NameLocal, 1)
+            If firstChar = "$" Then sty.Delete
+        End If
+    Next sty
 End Function
 
 Private Function styleExists(styleName As String) As Boolean ' TODO: doc en param
@@ -373,7 +400,7 @@ Private Function processSubmenu(submenu, lang As String)
 						styleName = Ctl.caption
 					End If
 					If Not styleExists(styleName) Then
-						writeLog "Le style '" + styleName + "' associé au bouton '" + menuName + "' en langue " + lang + " n'existe pas. L'utilisation de ce bouton produira une erreur"
+						writeLog "Le style '" + styleName + "' associé au bouton '" + menuId + "' en langue " + lang + " n'existe pas. L'utilisation de ce bouton produira une erreur"
 					End If
 					Ctl.parameter = styleName
 				End If
