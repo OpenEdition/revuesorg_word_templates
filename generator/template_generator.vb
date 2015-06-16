@@ -409,11 +409,14 @@ Private Function processSubmenu(submenu, lang As String)
                 ' Remarque : on n'ecrit rien dans le log concernant les keybindings pour éviter de le poluer
                 key = getTranslation(menuId, "key", lang)
                 If key <> vbNullChar Then
+                    ' Assigner
                     If wordId <> vbNullChar Then
                         addStyleKeyBinding wordId, key
                     Else
                         addStyleKeyBinding styleName, key
                     End If
+                    ' Ajouter la mention du raccourci dans le menu
+                    Ctl.caption = Ctl.caption + vbTab + " <" + key + ">"
                 End If
             End If
         End If
