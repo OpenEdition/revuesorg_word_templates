@@ -195,8 +195,6 @@ Private Function renameBaseStylesAndTranslate()
 	writeLog ""
 
     Set baseDocument = Documents.Open(FileName:=BasePath, Visible:=False)
-    ' Traductions par défaut
-    renameStyles baseDocument
     ' Traductions linguisitique pour chaque langue
     For intCount = LBound(DestLanguages) To UBound(DestLanguages)
         ' A chaque fois copier tous les styles depuis base.dot
@@ -206,6 +204,8 @@ Private Function renameBaseStylesAndTranslate()
         ' Puis renommer les styles en fonction de translations.ini
         renameStyles baseDocument, currentLang
     Next
+    ' Traductions par défaut. NOTE: A exécuter après les traductions linguistiques pour éviter les problèmes de baseStyles inexistants (peut provoquer la perte de la mise en forme) pour les styles des traductions linguistiques.
+    renameStyles baseDocument
 	baseDocument.Close
     ' Supprimer tous les styles préfixés ($) résiduels
     Call cleanPrefixedStyles
@@ -216,7 +216,7 @@ Private Function renameStyles(baseDocument As Document, Optional lang As String 
     Dim styleId As String
     Dim newName As String
     Dim defaultName As String
-    ' Eviter les problemes en ne modifiant pas le document sur lequel on est en train de boucler
+    ' Eviter les problemes en ne modifiant pas le document sur lequel on est en train de boucler. On boucle sur baseDocument et on modifie ProcessedDoc.
     For Each Style In baseDocument.Styles
         ' On ne traduit pas les styles natifs de Word car ils sont automatiquement adaptés à la langue de l'utilisateur
         If Style.BuiltIn = False Then
