@@ -74,7 +74,7 @@ Private Function getLanguagesFromIni()
     Dim strLanguages As String
     Dim intCount As Integer
 
-    strLanguages = getIniValue("_configuration", "translateTo") ' TODO: Harmonsier l'écriture des variables
+    strLanguages = getIniValue("_configuration", "translateTo")
     DestLanguages() = Split(strLanguages, ", ")
 End Function
 
@@ -142,7 +142,7 @@ End Function
 
 Private Function copyAndOpen(src As String, dest As String)
     FileCopy src, dest
-    Set ProcessedDoc = Documents.Open(FileName:=dest, Visible:=True) ' TODO: Visible := False
+    Set ProcessedDoc = Documents.Open(FileName:=dest, Visible:=False)
 End Function
 
 Private Function saveAndClose(doc As Document)
@@ -150,7 +150,7 @@ Private Function saveAndClose(doc As Document)
     doc.Close
 End Function
 
-Private Function closeAll() ' FIXME: risque de poser probleme si on utilise le modele en tant que modele. Plutôt associé en macro ?
+Private Function closeAll()
     With Application
         .ScreenUpdating = False
         Do Until .Documents.Count = 0
@@ -180,9 +180,6 @@ End Function
 
 ' Traduction des styles
 ' ==========
-' 1. Renommer les styles déjà présents dans base.dot d'après le fichier INI = BaseStyle. C'est l'entrée "style" sans prefixe de chaque section qui est utilisée (=français).
-' 2. Pour chaque langue, regarder si une traduction existe dans le INI. Si elle existe et aucun style à son nom n'existe alors on le créée. Le style créé est hérité du BaseStyle.
-' TODO: 1 et 2 à modifier, on n'utilise plus le défaut
 
 Private Function renameBaseStylesAndTranslate()
     Dim intCount As Integer
@@ -260,7 +257,7 @@ End Function
 ' Nettoyer les styles prefixés avec $ à la fin du traitement (il s'agit des styles qui n'ont pas de traduction par défaut)
 Private Function cleanPrefixedStyles()
     Dim firstChar As String
-    For Each sty In ActiveDocument.Styles
+    For Each sty In ProcessedDoc.Styles
         If sty.BuiltIn = False Then
             firstChar = Left(sty.NameLocal, 1)
             If firstChar = "$" Then sty.Delete
@@ -309,9 +306,9 @@ Private Function addStyleKeyBinding(styleName As String, keyString As String)
     End If
     ' Dans le cas d'un identifiant numerique il faut retrouver le nom du style
     If IsNumeric(styleName) Then
-        styleName = ActiveDocument.Styles(CInt(styleName)).NameLocal
+        styleName = ProcessedDoc.Styles(CInt(styleName)).NameLocal
     End If
-    CustomizationContext = ActiveDocument
+    CustomizationContext = ProcessedDoc
     KeyBindings.Add KeyCategory:=wdKeyCategoryStyle, _
         Command:=styleName, _
         keyCode:=keyCode
@@ -319,13 +316,12 @@ End Function
 
 ' Une fonction pour supprimer tous les raccourcis clavier utilisateur d'un template
 Private Function clearAllKeybindings()
-    CustomizationContext = ActiveDocument
+    CustomizationContext = ProcessedDoc
     KeyBindings.ClearAll
 End Function
 
 ' Traduction des menus et assignation des keybindings
 ' ==========
-' TODO: ajouter une traduction des builtInStyles dans chacun des modeles linguisitiques. Ca sert pas a grand chose car les builtIn prennent la langue de Word, mais c'est plus propre car harmonisé
 
 ' Barre d'outils
 ' Fonction principale de traitement de la barre d'outil
@@ -378,8 +374,11 @@ Private Function processSubmenu(submenu, lang As String)
 
             ' Traduire le caption du controle
             menuName = getTranslation(menuId, "menu", lang)
+            wordId = getIniValue(menuId, "wordId")
             If menuName <> vbNullChar Then
                 Ctl.caption = menuName
+            ElseIf wordId <> vbNullChar Then ' Si la traduction d'un menu associé à un style natif n'est pas donnée alors on cherche la traduction de Word
+                Ctl.caption = ProcessedDoc.Styles(wordId).NameLocal
             Else
                 writeLog "Le bouton '" + menuId + "' n'a pas pu être traduit en langue " + lang
             End If
@@ -391,7 +390,6 @@ Private Function processSubmenu(submenu, lang As String)
                 Ctl.OnAction = MACRONAME
 
                 ' Assigner le parameter qui sera transmis a la macro d'application de styles
-				wordId = getIniValue(menuId, "wordId")
 				If wordId <> vbNullChar Then
 					Ctl.parameter = wordId
 				Else
@@ -404,6 +402,14 @@ Private Function processSubmenu(submenu, lang As String)
 					End If
 					Ctl.parameter = styleName
 				End If
+
+                ' Traduire les builtInStyles pour ce modèle. N'est indispensable car Word les traduit automatiquement, c'est pourquoi on n'enregistre pas d'erreur si pas de traduction
+                If wordId <> vbNullChar Then
+                    styleName = getTranslation(menuId, "style", lang)
+                    if styleName <> vbNullChar Then
+                        ProcessedDoc.Styles(wordId).NameLocal = styleName
+                    End If
+                End If
 
                 ' Assigner le keybinding s'il existe
                 ' Remarque : on n'ecrit rien dans le log concernant les keybindings pour éviter de le poluer
