@@ -154,7 +154,7 @@ Private Function closeAll()
     With Application
         .ScreenUpdating = False
         Do Until .Documents.Count = 0
-            .Documents(1).Close SaveChanges:=wdDoNotSaveChanges
+            .Documents(1).Close SaveChanges:=wdPromptToSaveChanges
         Loop
     End With
 End Function
@@ -411,8 +411,16 @@ End Sub
 ' Lancer la génération des modèles
 Sub runGenerator()
     Dim currentLang As String
+    Dim user As Integer
+    ' Demande de confirmation pour la fermeture des documents ouverts dans Word
+    If Application.Documents.Count <> 0 Then
+        user = MsgBox("L'exécution du générateur de modèles va entrainer la fermeture tous les documents actuellement ouverts dans Word. L'enregistrement sera proposé pour tous les documents qui n'ont pas été sauvegardés.", vbOKCancel + vbQuestion, "Génération des modèles")
+        If user <> vbOK Then
+            Exit Sub
+        End If
+    End If
+    Call closeAll
     ' Initialisation
-    Call closeAll ' TODO: prévenir que tout va être fermé
     Call init
     Call openLog
     ' Convertir l'encodage des fichiers INI
