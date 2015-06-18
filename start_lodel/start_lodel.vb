@@ -73,7 +73,7 @@ Private Sub generateStartLodelMenu()
 	Set subMenu = menuBar.Controls.Add(Type:=msoControlPopup)
 	subMenu.BeginGroup = True
 	subMenu.Caption = trad("options")
-	
+
 	Set subSubMenu = subMenu.Controls.Add(Type:=msoControlPopup)
 	subSubMenu.Caption = trad("language")
 
@@ -88,7 +88,7 @@ Private Sub generateStartLodelMenu()
 		.Caption = "Français" + showIfDefaultLang(" (par défaut)", "fr")
 		.OnAction = "startRevuesOrgFr"
 	End With
-	
+
 	Set subMenuItem = subMenu.Controls.Add(Type:=msoControlButton)
 	With subMenuItem
 		.BeginGroup = True
@@ -100,11 +100,11 @@ End Sub
 Sub doStart(lang As String)
 	Dim tpl As String
 	Dim macro As String
-	
+
     ' TODO: tester les paths sur OS X
 	tpl = Options.DefaultFilePath(Path:=wdUserTemplatesPath) + "\revuesorg_" + lang + ".dot"
 	macro = Options.DefaultFilePath(Path:=wdUserTemplatesPath) + "\macros_revuesorg_" + os + ".dot"
-    
+
 	If ActiveWindow.View.SplitSpecial = wdPaneNone Then
         ActiveWindow.ActivePane.View.Type = wdNormalView
     Else
@@ -116,11 +116,13 @@ Sub doStart(lang As String)
     ActiveDocument.FormattingShowParagraph = True
     ActiveDocument.FormattingShowNumbering = True
     ActiveDocument.FormattingShowFilter = wdShowFilterStylesInUse
+    ActiveDocument.FormattingShowUserStyleName = True ' Afficher les noms de substitution quand on change le nom d'un style natif
     AddIns.Add FileName:=macro, Install:=True
     ActiveDocument.UpdateStylesOnOpen = True
     ActiveDocument.AttachedTemplate = tpl
     ActiveDocument.XMLSchemaReferences.AutomaticValidation = True
     ActiveDocument.XMLSchemaReferences.AllowSaveAsXMLWithoutValidation = False
+    ActiveWindow.View.ShowBookmarks = True
 End Sub
 
 Sub startRevuesOrgDefault()
@@ -148,5 +150,5 @@ Sub AutoExec()
         os = "win"
     #End If
 	wordLang = getWordLang()
-	Call generateStartLodelMenu    
+	Call generateStartLodelMenu
 End Sub
