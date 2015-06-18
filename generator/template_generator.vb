@@ -142,7 +142,7 @@ End Function
 
 Private Function copyAndOpen(src As String, dest As String)
     FileCopy src, dest
-    Set ProcessedDoc = Documents.Open(FileName:=dest, Visible:=False)
+    Set ProcessedDoc = Documents.Open(FileName:=dest, Visible:=True) 'FIXME: maintenant on a une erreur quand on set Visible=False !??
 End Function
 
 Private Function saveAndClose(doc As Document)
@@ -167,7 +167,6 @@ Private Function openLog()
     Open LogFilePath For Append As #1
 	Print #1, "GENERATOR.DOT : LOG DES ERREURS RENCONTREES (" + Format(Now, "ddddd ttttt") + ")"
 	Print #1, "================================="
-	Print #1, ""
 End Function
 
 Private Function writeLog(msg As String)
@@ -181,77 +180,51 @@ End Function
 ' Traduction des styles
 ' ==========
 
-Private Function renameBaseStylesAndTranslate()
-    Dim intCount As Integer
-    Dim currentLang As String
-	Dim baseDocument As Document
-
-	writeLog "╔═══════════════════════╗"
-	writeLog "║ TRADUCTION DES STYLES ║"
-	writeLog "╚═══════════════════════╝"
-	writeLog ""
-
-    Set baseDocument = Documents.Open(FileName:=BasePath, Visible:=False)
-    ' Traductions linguisitique pour chaque langue
-    For intCount = LBound(DestLanguages) To UBound(DestLanguages)
-        ' A chaque fois copier tous les styles depuis base.dot
-        ProcessedDoc.CopyStylesFromTemplate _
-            Template:=BasePath
-        currentLang = Trim(DestLanguages(intCount))
-        ' Puis renommer les styles en fonction de translations.ini
-        renameStyles baseDocument, currentLang
-    Next
-    ' Traductions par défaut. NOTE: A exécuter après les traductions linguistiques pour éviter les problèmes de baseStyles inexistants (peut provoquer la perte de la mise en forme) pour les styles des traductions linguistiques.
-    renameStyles baseDocument
-	baseDocument.Close
-    ' Supprimer tous les styles préfixés ($) résiduels
-    Call cleanPrefixedStyles
-	writeLog "Traduction des styles terminée."
-End Function
-
-Private Function renameStyles(baseDocument As Document, Optional lang As String = "")
-    Dim styleId As String
+Private Function translateStyles(lang As String)
+    Dim baseDocument As Document
+    Dim id As String
     Dim newName As String
-    Dim defaultName As String
-    ' Eviter les problemes en ne modifiant pas le document sur lequel on est en train de boucler. On boucle sur baseDocument et on modifie ProcessedDoc.
+    Dim wordId As String
+
+    writeLog ""
+	writeLog "# Traduction des styles"
+
+    Set baseDocument = Documents.Open(FileName:=BasePath, Visible:=False) ' TODO : a n'ouvrir qu'un fois pour toutes
     For Each Style In baseDocument.Styles
-        ' On ne traduit pas les styles natifs de Word car ils sont automatiquement adaptés à la langue de l'utilisateur
         If Style.BuiltIn = False Then
-            styleId = Style.NameLocal
-            defaultName = getIniValue(styleId, "style")
-            If lang = "" Then
-                newName = defaultName
-            Else
-                newName = getIniValue(styleId, lang + ".style")
-            End If
+            id = Style.NameLocal
+            newName = getTranslation(id, "style", lang)
             If newName <> vbNullChar Then
-                If Not styleExists(newName) Then ProcessedDoc.Styles(styleId).NameLocal = newName
+                If Not styleExists(newName) Then ProcessedDoc.Styles(id).NameLocal = newName
 			Else
-                If lang <> "" And defaultName = vbNullChar Then
-                    writeLog "Le style '" + styleId + "' n'a pas pu être traduit en langue " + lang
+                If defaultName = vbNullChar Then
+                    writeLog "Le style '" + id + "' n'a pas pu être traduit en langue " + lang
+                End If
+            End If
+        Else
+            wordId = getIniValue(id, "wordId")
+            ' Traduire les builtInStyles pour ce modèle. N'est indispensable car Word les traduit automatiquement, c'est pourquoi on n'enregistre pas d'erreur si pas de traduction
+            If wordId <> vbNullChar Then
+                styleName = getTranslation(id, "style", lang)
+                if styleName <> vbNullChar Then
+                    ProcessedDoc.Styles(wordId).NameLocal = styleName
                 End If
             End If
         End If
     Next Style
-End Function
 
-Private Function translateStyle(baseStyleName As String, styleId As String, lang As String, hasDefaultTranslation As Boolean) ' TODO: doc en param
-    Dim translatedName As String
-    Dim key As String
-    Dim styleAdded As Style
-
-    key = lang + ".style"
-    translatedName = getIniValue(styleId, key)
-    If translatedName = vbNullChar Or styleExists(translatedName) Then
-		If hasDefaultTranslation = False Then
-			writeLog "Le style '" + baseStyleName + "' n'a pas pu être traduit en langue " + lang
-		End If
-        Exit Function
-    Else
-        Set styleAdded = ProcessedDoc.Styles.Add(Name:=translatedName, _
-            Type:=wdStyleTypeParagraph)
-        styleAdded.baseStyle = baseStyleName
+    ' Traduire les builtInStyles pour ce modèle. N'est indispensable car Word les traduit automatiquement, c'est pourquoi on n'enregistre pas d'erreur si pas de traduction
+    If wordId <> vbNullChar Then
+        styleName = getTranslation(id, "style", lang)
+        if styleName <> vbNullChar Then
+            ProcessedDoc.Styles(wordId).NameLocal = styleName
+        End If
     End If
+
+    baseDocument.Close
+    ' Supprimer tous les styles préfixés ($) résiduels
+    Call cleanPrefixedStyles
+	writeLog "> Terminé"
 End Function
 
 ' Nettoyer les styles prefixés avec $ à la fin du traitement (il s'agit des styles qui n'ont pas de traduction par défaut)
@@ -330,10 +303,7 @@ Private Function processToolbar(lang As String)
 	Dim Ctl As CommandBarControl
 
 	writeLog ""
-	writeLog "╔═════════════════════════╗"
-	writeLog "║ TRADUCTION DU MENU [" + lang + "] ║"
-	writeLog "╚═════════════════════════╝"
-	writeLog ""
+	writeLog "# Traduction du menu et assignation des raccourcis clavier"
 
 	Application.ScreenUpdating = False
 	For Each Cmdbar In Application.CommandBars ' TODO: peut-être mieux d'utiliser la méthode .findControl() ?
@@ -343,7 +313,7 @@ Private Function processToolbar(lang As String)
 		Next Ctl
 	End If
 	Next Cmdbar
-	writeLog "Traduction du menu en langue " + lang + " terminée."
+	writeLog "> Terminé"
 End Function
 
 ' Fonction récursive de traitement des sous menus et assignation des raccourcis clavier
@@ -403,14 +373,6 @@ Private Function processSubmenu(submenu, lang As String)
 					Ctl.parameter = styleName
 				End If
 
-                ' Traduire les builtInStyles pour ce modèle. N'est indispensable car Word les traduit automatiquement, c'est pourquoi on n'enregistre pas d'erreur si pas de traduction
-                If wordId <> vbNullChar Then
-                    styleName = getTranslation(menuId, "style", lang)
-                    if styleName <> vbNullChar Then
-                        ProcessedDoc.Styles(wordId).NameLocal = styleName
-                    End If
-                End If
-
                 ' Assigner le keybinding s'il existe
                 ' Remarque : on n'ecrit rien dans le log concernant les keybindings pour éviter de le poluer
                 key = getTranslation(menuId, "key", lang)
@@ -450,23 +412,26 @@ End Sub
 Sub runGenerator()
     Dim currentLang As String
     ' Initialisation
-    Call closeAll
+    Call closeAll ' TODO: prévenir que tout va être fermé
     Call init
     Call openLog
     ' Convertir l'encodage des fichiers INI
 	unicode2ansi IniPath, AnsiIniPath
     unicode2ansi EnumerationsPath, AnsiEnumerationsPath
-    ' Copier base.dot et enregistrer la copie dans tmp/styles.dot
-    copyAndOpen BasePath, TmpPath + "\styles.dot"
-    ' Operations sur tmp/styles.dot : traduire les styles et nettoyer tous les keybindings
-    Call renameBaseStylesAndTranslate
+    ' Copie et préparation de base.dot
+    copyAndOpen BasePath, TmpPath + "\base.dot"
     Call clearAllKeybindings
     saveAndClose ProcessedDoc
-    ' Création d'un modele par langue déclarée : traduction de la toolbar, attribution des actions et des keybindings
+    ' Création d'un modele par langue déclarée : traduction des styles, génération de la toolbar, attribution des actions et des keybindings
     For intCount = LBound(DestLanguages) To UBound(DestLanguages)
         currentLang = Trim(DestLanguages(intCount))
         If currentLang <> "" Then
-            copyAndOpen TmpPath + "\styles.dot", BuildPath + "\revuesorg_" + currentLang + ".dot"
+            writeLog ""
+            writeLog "╔═══════════════════════════════════════╗"
+            writeLog "║ Generation du modele revuesorg_" + currentLang + ".dot ║"
+            writeLog "╚═══════════════════════════════════════╝"
+            copyAndOpen TmpPath + "\base.dot", BuildPath + "\revuesorg_" + currentLang + ".dot"
+            translateStyles currentLang
             processToolbar currentLang
             saveAndClose ProcessedDoc
         End If
