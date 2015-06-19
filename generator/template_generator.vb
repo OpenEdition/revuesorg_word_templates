@@ -1,13 +1,25 @@
-'╔═══════════════════════════════════════════════════════╗
-'║                 template_generator.vb                 ║
-'║                 =====================                 ║
-'║ Génération et traduction automatisées de modèles Word ║
-'║ https://github.com/brrd/revuesorg_word_templates      ║
-'╚═══════════════════════════════════════════════════════╝
+'+-------------------------------------------------------+
+'¦                 template_generator.vb                 ¦
+'¦                 =====================                 ¦
+'¦ Génération et traduction automatisées de modèles Word ¦
+'¦ https://github.com/brrd/revuesorg_word_templates      ¦
+'+-------------------------------------------------------+
 
 ' Déclarations
 ' ==========
 
+' Chemins
+Const ROOT As String = "\generator"
+Const BASEDOT As String = "\src\base.dot"
+Const TRANSLATIONS As String = "\src\translations.ini"
+Const ENUMERATIONS As String = "\utils\enumerations.ini"
+Const TRANSLATIONSANSI As String = "\tmp\translations-ansi.ini"
+Const ENUMERATIONSANSI As String = "\tmp\enumerations-ansi.ini"
+Const TMPBASEDOT As String = "\tmp\base.tmp.dot"
+Const BUILD = "\build"
+Const LOGTXT As String = "\build\log.txt"
+
+' Elements dans base.dot
 Const TOOLBARNAME As String = "LodelStyles"
 Const MACRONAME As String = "ApplyLodelStyle"
 
@@ -18,30 +30,9 @@ Declare Function GetPrivateProfileString Lib "kernel32" Alias _
         ByVal lpReturnedString As String, ByVal nSize As Long, _
         ByVal lpFileName As String) As Long
 
-Public GeneratorPath As String
-Public IniPath As String
-Public AnsiIniPath As String
-Public EnumerationsPath As String
-Public AnsiEnumerationsPath As String
-Public BasePath As String
-Public BuildPath As String
-Public TmpPath As String
+' TODO: a transmettre en var
 Public DestLanguages() As String
-Public LogFilePath As String
 Public ProcessedDoc As Document
-
-Private Function init()
-    GeneratorPath = Options.DefaultFilePath(Path:=wdUserTemplatesPath) + "\generator"
-    IniPath = GeneratorPath + "\src\translations.ini"
-	AnsiIniPath = GeneratorPath + "\tmp\translations-ansi.ini"
-    EnumerationsPath = GeneratorPath + "\utils\enumerations.ini"
-    AnsiEnumerationsPath = GeneratorPath + "\tmp\enumerations.ini"
-    BasePath = GeneratorPath + "\src\base.dot"
-    TmpPath = GeneratorPath + "\tmp"
-    BuildPath = GeneratorPath + "\build"
-    LogFilePath = BuildPath + "\log.txt"
-    Call getLanguagesFromIni
-End Function
 
 ' Fichiers INI
 ' ==========
@@ -64,22 +55,21 @@ Private Function unicode2ansi(source As String, dest As String)
     End With
 End Function
 
-' Retourne un tableau de codes de langues tiré du INI
-' Usage :
-    'Dim intCount As Integer
-    'For intCount = LBound(DestLanguages) To UBound(DestLanguages)
-    '    Debug.Print Trim(DestLanguages(intCount))
-    'Next
-Private Function getLanguagesFromIni()
+' Initialisation des langues dans la globale DestLanguages(). La fonction retourne un booléen selon le succès de la lecture du INI.
+Private Function getLanguagesFromIni() As Boolean
     Dim strLanguages As String
     Dim intCount As Integer
-
     strLanguages = getIniValue("_configuration", "translateTo")
-    DestLanguages() = Split(strLanguages, ", ")
+    If strLanguages <> vbNullChar Then
+        DestLanguages() = Split(strLanguages, ", ")
+        getLanguagesFromIni = True
+    Else
+        getLanguagesFromIni = False
+    End If
 End Function
 
 ' Lire les fichiers INI
-Private Function GetSectionEntry(ByVal strSectionName As String, ByVal strEntry As String, ByVal strIniPath As String) As String
+Private Function getSectionEntry(ByVal strSectionName As String, ByVal strEntry As String, ByVal strIniPath As String) As String
     Dim X As Long
     Dim sSection As String, sEntry As String, sDefault As String
     Dim sRetBuf As String, iLenBuf As Integer, sFileName As String
@@ -95,9 +85,9 @@ Private Function GetSectionEntry(ByVal strSectionName As String, ByVal strEntry 
         "", sRetBuf, iLenBuf, sFileName)
     sValue = Strings.Trim(Strings.Left$(sRetBuf, X))
     If sValue <> "" Then
-        GetSectionEntry = sValue
+        getSectionEntry = sValue
     Else
-        GetSectionEntry = vbNullChar
+        getSectionEntry = vbNullChar
     End If
 ErrGetSectionentry:
     If Err <> 0 Then
@@ -107,17 +97,17 @@ ErrGetSectionentry:
 End Function
 
 ' Lire translations.ini
-Private Function getIniValue(section As String, key As String)
-    getIniValue = GetSectionEntry(section, key, AnsiIniPath)
+Private Function getIniValue(section As String, key As String) As String
+    getIniValue = getSectionEntry(section, key, getAbsPath(TRANSLATIONSANSI))
 End Function
 
 ' Lire enumerations.ini
-Private Function getEnumeration(section As String, key As String)
-    getEnumeration = GetSectionEntry(section, key, AnsiEnumerationsPath)
+Private Function getEnumeration(section As String, key As String) As String
+    getEnumeration = getSectionEntry(section, key, getAbsPath(ENUMERATIONSANSI))
 End Function
 
 ' Récupérer la valeur d'une clé linguistique (ex: fr.menu), sinon la valeur par défaut (ex: menu)
-Private Function getTranslation(section As String, key As String, lang As String)
+Private Function getTranslation(section As String, key As String, lang As String) As String
     Dim value As String
     value = getIniValue(section, lang + "." + key)
     If value = vbNullChar Then
@@ -129,12 +119,16 @@ End Function
 ' File operations
 ' ===========
 
-Private Function FileExists(ByVal FileToTest As String) As Boolean
-   FileExists = (Dir(FileToTest) <> "")
+Private Function getAbsPath(Optional relPath As String = "") As String
+    getAbsPath = Options.DefaultFilePath(Path:=wdUserTemplatesPath) + ROOT + relPath
 End Function
 
-Private Function DeleteFile(ByVal FileToDelete As String)
-   If FileExists(FileToDelete) Then 'See above
+Private Function fileExists(ByVal FileToTest As String) As Boolean
+   fileExists = (Dir(FileToTest) <> "")
+End Function
+
+Private Function deleteFile(ByVal FileToDelete As String)
+   If fileExists(FileToDelete) Then
       SetAttr FileToDelete, vbNormal
       Kill FileToDelete
    End If
@@ -163,10 +157,12 @@ End Function
 ' ==========
 
 Private Function openLog()
-    DeleteFile LogFilePath
-    Open LogFilePath For Append As #1
-	Print #1, "GENERATOR.DOT : LOG DES ERREURS RENCONTREES (" + Format(Now, "ddddd ttttt") + ")"
-	Print #1, "================================="
+    Dim logFile As String
+    logFile = getAbsPath(LOGTXT)
+    deleteFile logFile
+    Open logFile For Append As #1
+    Print #1, "GENERATOR.DOT : LOG DES ERREURS RENCONTREES (" + Format(Now, "ddddd ttttt") + ")"
+    Print #1, "================================="
 End Function
 
 Private Function writeLog(msg As String)
@@ -187,16 +183,16 @@ Private Function translateStyles(lang As String)
     Dim wordId As String
 
     writeLog ""
-	writeLog "# Traduction des styles"
+    writeLog "# Traduction des styles"
 
-    Set baseDocument = Documents.Open(FileName:=BasePath, Visible:=False) ' TODO : a n'ouvrir qu'un fois pour toutes
+    Set baseDocument = Documents.Open(FileName:=getAbsPath(BASEDOT), Visible:=False) ' TODO : a n'ouvrir qu'un fois pour toutes
     For Each Style In baseDocument.Styles
         If Style.BuiltIn = False Then
             id = Style.NameLocal
             newName = getTranslation(id, "style", lang)
             If newName <> vbNullChar Then
                 If Not styleExists(newName) Then ProcessedDoc.Styles(id).NameLocal = newName
-			Else
+            Else
                 If defaultName = vbNullChar Then
                     writeLog "Le style '" + id + "' n'a pas pu être traduit en langue " + lang
                 End If
@@ -206,7 +202,7 @@ Private Function translateStyles(lang As String)
             ' Traduire les builtInStyles pour ce modèle. N'est indispensable car Word les traduit automatiquement, c'est pourquoi on n'enregistre pas d'erreur si pas de traduction
             If wordId <> vbNullChar Then
                 styleName = getTranslation(id, "style", lang)
-                if styleName <> vbNullChar Then
+                If styleName <> vbNullChar Then
                     ProcessedDoc.Styles(wordId).NameLocal = styleName
                 End If
             End If
@@ -216,7 +212,7 @@ Private Function translateStyles(lang As String)
     ' Traduire les builtInStyles pour ce modèle. N'est indispensable car Word les traduit automatiquement, c'est pourquoi on n'enregistre pas d'erreur si pas de traduction
     If wordId <> vbNullChar Then
         styleName = getTranslation(id, "style", lang)
-        if styleName <> vbNullChar Then
+        If styleName <> vbNullChar Then
             ProcessedDoc.Styles(wordId).NameLocal = styleName
         End If
     End If
@@ -224,7 +220,7 @@ Private Function translateStyles(lang As String)
     baseDocument.Close
     ' Supprimer tous les styles préfixés ($) résiduels
     Call cleanPrefixedStyles
-	writeLog "> Terminé"
+    writeLog "> Terminé"
 End Function
 
 ' Nettoyer les styles prefixés avec $ à la fin du traitement (il s'agit des styles qui n'ont pas de traduction par défaut)
@@ -299,21 +295,21 @@ End Function
 ' Barre d'outils
 ' Fonction principale de traitement de la barre d'outil
 Private Function processToolbar(lang As String)
-	Dim Cmdbar As CommandBar
-	Dim Ctl As CommandBarControl
+    Dim Cmdbar As CommandBar
+    Dim Ctl As CommandBarControl
 
-	writeLog ""
-	writeLog "# Traduction du menu et assignation des raccourcis clavier"
+    writeLog ""
+    writeLog "# Traduction du menu et assignation des raccourcis clavier"
 
-	Application.ScreenUpdating = False
-	For Each Cmdbar In Application.CommandBars ' TODO: peut-être mieux d'utiliser la méthode .findControl() ?
-	If Cmdbar.Name = TOOLBARNAME Then
-		For Each Ctl In Cmdbar.Controls
-			processSubmenu Ctl, lang
-		Next Ctl
-	End If
-	Next Cmdbar
-	writeLog "> Terminé"
+    Application.ScreenUpdating = False
+    For Each Cmdbar In Application.CommandBars ' TODO: peut-être mieux d'utiliser la méthode .findControl() ?
+    If Cmdbar.Name = TOOLBARNAME Then
+        For Each Ctl In Cmdbar.Controls
+            processSubmenu Ctl, lang
+        Next Ctl
+    End If
+    Next Cmdbar
+    writeLog "> Terminé"
 End Function
 
 ' Fonction récursive de traitement des sous menus et assignation des raccourcis clavier
@@ -321,20 +317,20 @@ Private Function processSubmenu(submenu, lang As String)
     Dim menuName As String
     Dim styleName As String
     Dim menuId As String
-	Dim wordId As String
+    Dim wordId As String
     Dim key As String
 
     ' Traduire le caption du menu
-    menuName = getTranslation(submenu.caption, "menu", lang)
+    menuName = getTranslation(submenu.Caption, "menu", lang)
     If menuName <> vbNullChar Then
-        submenu.caption = menuName
+        submenu.Caption = menuName
     Else
-        writeLog "Le sous-menu '" + submenu.caption + "' n'a pas pu être traduit en langue " + lang
+        writeLog "Le sous-menu '" + submenu.Caption + "' n'a pas pu être traduit en langue " + lang
     End If
 
     ' On boucle sur les enfants du menu'
     For Each Ctl In submenu.Controls
-        menuId = Ctl.caption
+        menuId = Ctl.Caption
 
         ' Si Ctl est un sous menu alors appel recursif de la fonction
         If Ctl.Type = msoControlPopup Then
@@ -346,9 +342,9 @@ Private Function processSubmenu(submenu, lang As String)
             menuName = getTranslation(menuId, "menu", lang)
             wordId = getIniValue(menuId, "wordId")
             If menuName <> vbNullChar Then
-                Ctl.caption = menuName
+                Ctl.Caption = menuName
             ElseIf wordId <> vbNullChar Then ' Si la traduction d'un menu associé à un style natif n'est pas donnée alors on cherche la traduction de Word
-                Ctl.caption = ProcessedDoc.Styles(wordId).NameLocal
+                Ctl.Caption = ProcessedDoc.Styles(wordId).NameLocal
             Else
                 writeLog "Le bouton '" + menuId + "' n'a pas pu être traduit en langue " + lang
             End If
@@ -360,18 +356,18 @@ Private Function processSubmenu(submenu, lang As String)
                 Ctl.OnAction = MACRONAME
 
                 ' Assigner le parameter qui sera transmis a la macro d'application de styles
-				If wordId <> vbNullChar Then
-					Ctl.parameter = wordId
-				Else
+                If wordId <> vbNullChar Then
+                    Ctl.Parameter = wordId
+                Else
                     styleName = getTranslation(menuId, "style", lang)
-					If styleName = vbNullChar Then
-						styleName = Ctl.caption
-					End If
-					If Not styleExists(styleName) Then
-						writeLog "Le style '" + styleName + "' associé au bouton '" + menuId + "' en langue " + lang + " n'existe pas. L'utilisation de ce bouton produira une erreur"
-					End If
-					Ctl.parameter = styleName
-				End If
+                    If styleName = vbNullChar Then
+                        styleName = Ctl.Caption
+                    End If
+                    If Not styleExists(styleName) Then
+                        writeLog "Le style '" + styleName + "' associé au bouton '" + menuId + "' en langue " + lang + " n'existe pas. L'utilisation de ce bouton produira une erreur"
+                    End If
+                    Ctl.Parameter = styleName
+                End If
 
                 ' Assigner le keybinding s'il existe
                 ' Remarque : on n'ecrit rien dans le log concernant les keybindings pour éviter de le poluer
@@ -384,7 +380,7 @@ Private Function processSubmenu(submenu, lang As String)
                         addStyleKeyBinding styleName, key
                     End If
                     ' Ajouter la mention du raccourci dans le menu
-                    Ctl.caption = Ctl.caption + vbTab + " <" + key + ">"
+                    Ctl.Caption = Ctl.Caption + vbTab + " <" + key + ">"
                 End If
             End If
         End If
@@ -411,6 +407,7 @@ End Sub
 ' Lancer la génération des modèles
 Sub runGenerator()
     Dim currentLang As String
+    Dim langFound As Boolean
     Dim user As Integer
     ' Demande de confirmation pour la fermeture des documents ouverts dans Word
     If Application.Documents.Count <> 0 Then
@@ -420,14 +417,19 @@ Sub runGenerator()
         End If
     End If
     Call closeAll
-    ' Initialisation
-    Call init
-    Call openLog
     ' Convertir l'encodage des fichiers INI
-	unicode2ansi IniPath, AnsiIniPath
-    unicode2ansi EnumerationsPath, AnsiEnumerationsPath
+    unicode2ansi getAbsPath(TRANSLATIONS), getAbsPath(TRANSLATIONSANSI)
+    unicode2ansi getAbsPath(ENUMERATIONS), getAbsPath(ENUMERATIONSANSI)
+    ' Initialisation des langues
+    langFound = getLanguagesFromIni()
+    ' Message d'erreur et exit si les langues ne sont pas trouvées dans l'INI
+    If Not langFound Then
+        MsgBox "Impossible d'identifier les langues de destination. Veuillez vérifier le fichier src/translations.ini." + Chr(10) + Chr(10) + "L'exécution du générateur de modèles va être annulée.", vbCritical, "Erreur"
+        Exit Sub
+    End If
+    Call openLog
     ' Copie et préparation de base.dot
-    copyAndOpen BasePath, TmpPath + "\base.dot"
+    copyAndOpen getAbsPath(BASEDOT), getAbsPath(TMPBASEDOT)
     Call clearAllKeybindings
     saveAndClose ProcessedDoc
     ' Création d'un modele par langue déclarée : traduction des styles, génération de la toolbar, attribution des actions et des keybindings
@@ -435,10 +437,10 @@ Sub runGenerator()
         currentLang = Trim(DestLanguages(intCount))
         If currentLang <> "" Then
             writeLog ""
-            writeLog "╔═══════════════════════════════════════╗"
-            writeLog "║ Generation du modele revuesorg_" + currentLang + ".dot ║"
-            writeLog "╚═══════════════════════════════════════╝"
-            copyAndOpen TmpPath + "\base.dot", BuildPath + "\revuesorg_" + currentLang + ".dot"
+            writeLog "+---------------------------------------+"
+            writeLog "¦ Generation du modele revuesorg_" + currentLang + ".dot ¦"
+            writeLog "+---------------------------------------+"
+            copyAndOpen getAbsPath(TMPBASEDOT), getAbsPath(BUILD) + "\revuesorg_" + currentLang + ".dot"
             translateStyles currentLang
             processToolbar currentLang
             saveAndClose ProcessedDoc
