@@ -13,8 +13,8 @@ Const ROOT As String = "\generator"
 Const BASEDOT As String = "\src\base.dot"
 Const TRANSLATIONS As String = "\src\translations.ini"
 Const ENUMERATIONS As String = "\utils\enumerations.ini"
-Const TRANSLATIONSANSI As String = "\tmp\translations-ansi.ini"
-Const ENUMERATIONSANSI As String = "\tmp\enumerations-ansi.ini"
+Const TMPTRANSLATIONS As String = "\tmp\translations.tmp.ini"
+Const TMPENUMERATIONS As String = "\tmp\enumerations.tmp.ini"
 Const TMPBASEDOT As String = "\tmp\base.tmp.dot"
 Const BUILD = "\build"
 Const LOGTXT As String = "\build\log.txt"
@@ -24,11 +24,16 @@ Const TOOLBARNAME As String = "LodelStyles"
 Const MACRONAME As String = "ApplyLodelStyle"
 
 ' Utilisé pour gérer les fichiers INI
-Declare Function GetPrivateProfileString Lib "kernel32" Alias _
-    "GetPrivateProfileStringA" (ByVal lpApplicationName As String, _
-        ByVal lpKeyName As Any, ByVal lpDefault As String, _
-        ByVal lpReturnedString As String, ByVal nSize As Long, _
-        ByVal lpFileName As String) As Long
+Public Declare Function GetPrivateProfileString _
+                            Lib "Kernel32" Alias "GetPrivateProfileStringW" _
+                            (ByVal lpApplicationName As String, _
+                             ByVal lpKeyName As String, _
+                             ByVal lpDefault As String, _
+                             lpReturnedString As Any, _
+                             ByVal nSize As Long, _
+                             ByVal lpFileName As String) As Long
+Global Const sDefValue = "Data not found"
+Global sInifile As String
 
 ' TODO: a transmettre en var
 Public DestLanguages() As String
@@ -37,18 +42,18 @@ Public ProcessedDoc As Document
 ' Fichiers INI
 ' ==========
 
-' Convertir un fichier encodé en Unicode en ANSI
-Private Function unicode2ansi(source As String, dest As String)
+' Convertir un fichier encodé en UTF-8 en UTF-16
+Private Function toUtf16(source As String, dest As String)
     Dim strText
     With CreateObject("ADODB.Stream")
-        .Type = 2
-        .Charset = "utf-8"
-        .Open
+        .Type = 2 'Specify stream type - we want To save text/string data.
+        .Charset = "utf-8" 'Specify charset For the source text data.
+        .Open 'Open the stream And write binary data To the object
         .LoadFromFile source
         strText = .ReadText(-1)
         .Position = 0
         .SetEOS
-        .Charset = "_autodetect_all"
+        .Charset = "utf-16"
         .WriteText strText, 0
         .SaveToFile dest, 2
         .Close
@@ -68,42 +73,39 @@ Private Function getLanguagesFromIni() As Boolean
     End If
 End Function
 
-' Lire les fichiers INI
-Private Function getSectionEntry(ByVal strSectionName As String, ByVal strEntry As String, ByVal strIniPath As String) As String
-    Dim X As Long
-    Dim sSection As String, sEntry As String, sDefault As String
-    Dim sRetBuf As String, iLenBuf As Integer, sFileName As String
-    Dim sValue As String
-    On Error GoTo ErrGetSectionentry
-    sSection = strSectionName
-    sEntry = strEntry
-    sDefault = ""
-    sRetBuf = Strings.String$(256, 0) '256 null characters
-    iLenBuf = Len(sRetBuf$)
-    sFileName = strIniPath
-    X = GetPrivateProfileString(sSection, sEntry, _
-        "", sRetBuf, iLenBuf, sFileName)
-    sValue = Strings.Trim(Strings.Left$(sRetBuf, X))
-    If sValue <> "" Then
-        getSectionEntry = sValue
+' Lire les fichiers ini avec support d'Unicode. Le fichier source doit être encodé en UTF-16 LE.
+' Voir : http://www.access-programmers.co.uk/forums/showthread.php?t=164136
+Public Function profileGetItem(sSection As String, _
+                                sKeyName As String, _
+                                sInifile As String) As String
+    Dim retval As Long
+    Dim cSize As Long
+    Dim Buf() As Byte
+    ReDim Buf(254)
+    cSize = 255
+    Dim sDefValue As String
+    sDefValue = ""
+    retval = GetPrivateProfileString(StrConv(sSection, vbUnicode), _
+                                        StrConv(sKeyName, vbUnicode), _
+                                        StrConv(sDefValue, vbUnicode), _
+                                        Buf(0), _
+                                        cSize, _
+                                        StrConv(sInifile, vbUnicode))
+    If retval > 0 Then
+        profileGetItem = Left(Buf, retval)
     Else
-        getSectionEntry = vbNullChar
-    End If
-ErrGetSectionentry:
-    If Err <> 0 Then
-        Err.Clear
-        Resume Next
+        profileGetItem = vbNullChar
     End If
 End Function
 
 ' Lire translations.ini
 Private Function getIniValue(section As String, key As String) As String
-    getIniValue = getSectionEntry(section, key, getAbsPath(TRANSLATIONSANSI))
+    getIniValue = profileGetItem(section, key, getAbsPath(TMPTRANSLATIONS))
 End Function
 
 ' Lire enumerations.ini
 Private Function getEnumeration(section As String, key As String) As String
-    getEnumeration = getSectionEntry(section, key, getAbsPath(ENUMERATIONSANSI))
+    getEnumeration = profileGetItem(section, key, getAbsPath(TMPENUMERATIONS))
 End Function
 
 ' Récupérer la valeur d'une clé linguistique (ex: fr.menu), sinon la valeur par défaut (ex: menu)
@@ -418,8 +420,8 @@ Sub runGenerator()
     End If
     Call closeAll
     ' Convertir l'encodage des fichiers INI
-    unicode2ansi getAbsPath(TRANSLATIONS), getAbsPath(TRANSLATIONSANSI)
-    unicode2ansi getAbsPath(ENUMERATIONS), getAbsPath(ENUMERATIONSANSI)
+    toUtf16 getAbsPath(TRANSLATIONS), getAbsPath(TMPTRANSLATIONS)
+    toUtf16 getAbsPath(ENUMERATIONS), getAbsPath(TMPENUMERATIONS)
     ' Initialisation des langues
     langFound = getLanguagesFromIni()
     ' Message d'erreur et exit si les langues ne sont pas trouvées dans l'INI

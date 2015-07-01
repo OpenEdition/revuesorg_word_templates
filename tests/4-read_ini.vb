@@ -2,6 +2,7 @@
 ' Lire un .ini
 ' Voir : http://vbadud.blogspot.co.uk/2008/11/how-to-read-and-write-configuration.html
 ' Attention : utilise la lib kernel32 qui n'est pas présente sur Mac
+' Problème : cette fonction ne supporte pas Unicode. Voir Test 21 pour une autre solution.
 
 Public Const INIPATH = "C:\Users\t.brouard\Desktop\test.ini"
 
