@@ -32,8 +32,6 @@ Public Declare Function GetPrivateProfileString _
                              lpReturnedString As Any, _
                              ByVal nSize As Long, _
                              ByVal lpFileName As String) As Long
-Global Const sDefValue = "Data not found"
-Global sInifile As String
 
 ' TODO: a transmettre en var
 Public DestLanguages() As String
@@ -165,6 +163,7 @@ Private Function openLog()
     Open logFile For Append As #1
     Print #1, "GENERATOR.DOT : LOG DES ERREURS RENCONTREES (" + Format(Now, "ddddd ttttt") + ")"
     Print #1, "================================="
+    Print #1, "Chemin sur le disque : " + getAbsPath(LOGTXT)
 End Function
 
 Private Function writeLog(msg As String)
@@ -404,6 +403,16 @@ Sub AutoExec()
         .OnAction = "runGenerator"
         .Style = msoButtonCaption
     End With
+    Set menuItem = menuBar.Controls.Add(Type:=msoControlButton)
+    With menuItem
+        .Caption = "Ouvrir le répertoire des modèles générés"
+        .OnAction = "openDestFolder"
+        .Style = msoButtonCaption
+    End With
+End Sub
+
+Sub openDestFolder()
+    Call Shell("explorer.exe" & " " & getAbsPath(BUILD), vbNormalFocus)
 End Sub
 
 ' Lancer la génération des modèles
@@ -450,5 +459,6 @@ Sub runGenerator()
     Next
     ' Fin
     Call closeLog
-    MsgBox "Les modèles ont été générés dans le dossier generator/build/." + Chr(10) + Chr(10) + "Merci de vérfier qu'aucune erreur n'a été rencontrée en consultant le journal generator/build/log.txt.", 64, "Opération terminée avec succès"
+    Documents.Open FileName:=getAbsPath(LOGTXT), Visible:=True
+    MsgBox "Les modèles ont été générés dans le dossier generator/build/." + Chr(10) + Chr(10) + "Merci de vérfier qu'aucune erreur n'a été rencontrée en consultant le log des erreurs.", 64, "Opération terminée avec succès"
 End Sub
