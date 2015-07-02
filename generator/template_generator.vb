@@ -404,6 +404,22 @@ Private Function processSubmenu(submenu, ByVal lang As String, ByVal isComplet A
     Next Ctl
 End Function
 
+' Texte du modèle (informations de version)
+' ==========
+
+Private Function addTplInfo(tplName As String)
+    Dim tplVersion As String
+    Dim text As String
+    tplVersion = getIniValue("_configuration", "version")
+    If tplVersion <> vbNullChar Then
+        text = tplName + " - version " + tplVersion + Chr(10) + "Info: http://maisondesrevues.org/"
+    Else
+        writeLog " Attention. La version des modèles traduits n'est pas spécifiée dans la fichier de configuration."
+        text = tplName + Chr(10) + "Info: http://maisondesrevues.org/"
+    End If
+    ProcessedDoc.Range(0, ProcessedDoc.Characters.Count).Text = text
+End Function
+
 ' Process général dans toutes les langues
 ' ==========
 
@@ -418,6 +434,7 @@ Private Function translateTemplate(ByVal lang As String, ByVal isComplet As Bool
     writeLog "Génération du modèle " + tplName
     writeLog "---------------------------------"
     copyAndOpen getAbsPath(TMPBASEDOT), getAbsPath(BUILD) + "\" + tplName
+    addTplInfo tplName
     translateStyles lang, isComplet
     processToolbar lang, isComplet
     saveAndClose ProcessedDoc
