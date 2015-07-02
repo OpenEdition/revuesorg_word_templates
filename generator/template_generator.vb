@@ -335,7 +335,9 @@ Private Function processSubmenu(submenu, ByVal lang As String, ByVal isComplet A
     If menuName <> vbNullChar Then
         submenu.Caption = menuName
     Else
-        writeLog "  Le sous-menu '" + submenu.Caption + "' n'a pas pu être traduit en langue " + lang + "."
+        writeLog "  Le sous-menu '" + submenu.Caption + "' n'a pas pu être traduit en langue " + lang + ". Le sous-menu a été supprimé du modèle."
+        submenu.Delete
+        Exit Function
     End If
 
     ' On boucle sur les enfants du menu'
