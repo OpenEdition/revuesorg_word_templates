@@ -323,6 +323,7 @@ Private Function processSubmenu(submenu, ByVal lang As String, ByVal isComplet A
     Dim menuId As String
     Dim wordId As String
     Dim key As String
+    Dim hyperlink As String
 
     ' Supprimer le menu s'il n'est pas censé être dans ce modèle (styles complets)
     If UCase(getIniValue(submenu.Caption, "complet")) = "TRUE" And Not isComplet Then
@@ -361,6 +362,13 @@ Private Function processSubmenu(submenu, ByVal lang As String, ByVal isComplet A
                 Ctl.Delete
                 writeLog "  Le bouton '" + menuId + "' n'a pas pu être traduit en langue " + lang + ". Le bouton a été supprimé du modèle."
                 Goto NextCtl
+            End If
+
+            ' Assigner un lien hypertexte au bouton avec 'hyperlink'
+            hyperlink = getTranslation(menuId, "hyperlink", lang)
+            If hyperlink <> vbNullChar Then
+                Ctl.HyperlinkType = msoCommandBarButtonHyperlinkOpen
+                Ctl.TooltipText = hyperlink
             End If
 
             ' La suite ne concerne pas les boutons qui contiennent un lien hypertexte
