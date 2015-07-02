@@ -41,7 +41,7 @@ Public ProcessedDoc As Document
 ' ==========
 
 ' Convertir un fichier encodé en UTF-8 en UTF-16
-Private Function toUtf16(source As String, dest As String)
+Private Function toUtf16(ByVal source As String, ByVal dest As String)
     Dim strText
     With CreateObject("ADODB.Stream")
         .Type = 2 'Specify stream type - we want To save text/string data.
@@ -73,9 +73,9 @@ End Function
 
 ' Lire les fichiers ini avec support d'Unicode. Le fichier source doit être encodé en UTF-16 LE.
 ' Voir : http://www.access-programmers.co.uk/forums/showthread.php?t=164136
-Public Function profileGetItem(sSection As String, _
-                                sKeyName As String, _
-                                sInifile As String) As String
+Public Function profileGetItem(ByVal sSection As String, _
+                                ByVal sKeyName As String, _
+                                ByVal sInifile As String) As String
     Dim retval As Long
     Dim cSize As Long
     Dim Buf() As Byte
@@ -97,17 +97,17 @@ Public Function profileGetItem(sSection As String, _
 End Function
 
 ' Lire translations.ini
-Private Function getIniValue(section As String, key As String) As String
+Private Function getIniValue(ByVal section As String, ByVal key As String) As String
     getIniValue = profileGetItem(section, key, getAbsPath(TMPTRANSLATIONS))
 End Function
 
 ' Lire enumerations.ini
-Private Function getEnumeration(section As String, key As String) As String
+Private Function getEnumeration(ByVal section As String, ByVal key As String) As String
     getEnumeration = profileGetItem(section, key, getAbsPath(TMPENUMERATIONS))
 End Function
 
 ' Récupérer la valeur d'une clé linguistique (ex: fr.menu), sinon la valeur par défaut (ex: menu)
-Private Function getTranslation(section As String, key As String, lang As String) As String
+Private Function getTranslation(ByVal section As String, ByVal key As String, ByVal lang As String) As String
     Dim value As String
     value = getIniValue(section, lang + "." + key)
     If value = vbNullChar Then
@@ -119,7 +119,7 @@ End Function
 ' File operations
 ' ===========
 
-Private Function getAbsPath(Optional relPath As String = "") As String
+Private Function getAbsPath(Optional ByVal relPath As String = "") As String
     getAbsPath = Options.DefaultFilePath(Path:=wdUserTemplatesPath) + ROOT + relPath
 End Function
 
@@ -134,7 +134,7 @@ Private Function deleteFile(ByVal FileToDelete As String)
    End If
 End Function
 
-Private Function copyAndOpen(src As String, dest As String)
+Private Function copyAndOpen(ByVal src As String, ByVal dest As String)
     FileCopy src, dest
     Set ProcessedDoc = Documents.Open(FileName:=dest, Visible:=True) 'FIXME: maintenant on a une erreur quand on set Visible=False !??
 End Function
@@ -161,12 +161,12 @@ Private Function openLog()
     logFile = getAbsPath(LOGTXT)
     deleteFile logFile
     Open logFile For Append As #1
-    Print #1, "GENERATOR.DOT : LOG DES ERREURS RENCONTREES (" + Format(Now, "ddddd ttttt") + ")"
+    Print #1, "GENERATOR : LOG DES ERREURS RENCONTREES (" + Format(Now, "ddddd ttttt") + ")"
     Print #1, "================================="
     Print #1, "Chemin sur le disque : " + getAbsPath(LOGTXT)
 End Function
 
-Private Function writeLog(msg As String)
+Private Function writeLog(ByVal msg As String)
     Print #1, msg
 End Function
 
@@ -177,7 +177,7 @@ End Function
 ' Traduction des styles
 ' ==========
 
-Private Function translateStyles(lang As String)
+Private Function translateStyles(ByVal lang As String, ByVal isComplet As Boolean)
     Dim baseDocument As Document
     Dim id As String
     Dim newName As String
@@ -188,23 +188,26 @@ Private Function translateStyles(lang As String)
 
     Set baseDocument = Documents.Open(FileName:=getAbsPath(BASEDOT), Visible:=False) ' TODO : a n'ouvrir qu'un fois pour toutes
     For Each Style In baseDocument.Styles
-        If Style.BuiltIn = False Then
-            id = Style.NameLocal
-            newName = getTranslation(id, "style", lang)
-            If newName <> vbNullChar Then
-                If Not styleExists(newName) Then ProcessedDoc.Styles(id).NameLocal = newName
-            Else
-                If defaultName = vbNullChar Then
-                    writeLog "Le style '" + id + "' n'a pas pu être traduit en langue " + lang
+        id = Style.NameLocal
+
+        If Not (UCase(getIniValue(id, "complet")) = "TRUE" And Not isComplet) Then ' Ne traduire les styles complets que quand c'est demandé
+            If Style.BuiltIn = False Then
+                newName = getTranslation(id, "style", lang)
+                If newName <> vbNullChar Then
+                    If Not styleExists(newName) Then ProcessedDoc.Styles(id).NameLocal = newName
+                Else
+                    If defaultName = vbNullChar Then
+                        writeLog "  Le style '" + id + "' n'a pas pu être traduit en langue " + lang
+                    End If
                 End If
-            End If
-        Else
-            wordId = getIniValue(id, "wordId")
-            ' Traduire les builtInStyles pour ce modèle. N'est indispensable car Word les traduit automatiquement, c'est pourquoi on n'enregistre pas d'erreur si pas de traduction
-            If wordId <> vbNullChar Then
-                styleName = getTranslation(id, "style", lang)
-                If styleName <> vbNullChar Then
-                    ProcessedDoc.Styles(wordId).NameLocal = styleName
+            Else
+                wordId = getIniValue(id, "wordId")
+                ' Traduire les builtInStyles pour ce modèle. N'est indispensable car Word les traduit automatiquement, c'est pourquoi on n'enregistre pas d'erreur si pas de traduction
+                If wordId <> vbNullChar Then
+                    styleName = getTranslation(id, "style", lang)
+                    If styleName <> vbNullChar Then
+                        ProcessedDoc.Styles(wordId).NameLocal = styleName
+                    End If
                 End If
             End If
         End If
@@ -235,7 +238,7 @@ Private Function cleanPrefixedStyles()
     Next sty
 End Function
 
-Private Function styleExists(styleName As String) As Boolean ' TODO: doc en param
+Private Function styleExists(ByVal styleName As String) As Boolean ' TODO: doc en param
     Dim MyStyle As Word.Style
     On Error Resume Next
     Set MyStyle = ProcessedDoc.Styles(styleName)
@@ -247,7 +250,7 @@ End Function
 
 ' Génère un keyCode reconnu par Word à partir d'une chaîne du type "Ctrl+Alt+A"
 ' Voir le test 18 pour plus de détails
-Private Function getKeyCode(keyString As String)
+Private Function getKeyCode(ByVal keyString As String)
     Dim keys() As String
     Dim i As Integer
     Dim key As String
@@ -261,14 +264,14 @@ Private Function getKeyCode(keyString As String)
         If (keyCode <> vbNullChar) Then
             sum = sum + CInt(keyCode)
         Else
-            writeLog "Erreur : '" + key + "' n'est pas une touche valide"
+            writeLog "  Erreur : '" + key + "' n'est pas une touche valide"
             getKeyCode = 0
         End If
     Next i
     getKeyCode = sum
 End Function
 
-Private Function addStyleKeyBinding(styleName As String, keyString As String)
+Private Function addStyleKeyBinding(ByVal styleName As String, ByVal keyString As String)
     Dim keyCode As Long
     keyCode = getKeyCode(keyString)
     If keyCode = 0 Then
@@ -295,7 +298,7 @@ End Function
 
 ' Barre d'outils
 ' Fonction principale de traitement de la barre d'outil
-Private Function processToolbar(lang As String)
+Private Function processToolbar(ByVal lang As String, ByVal isComplet As String)
     Dim Cmdbar As CommandBar
     Dim Ctl As CommandBarControl
 
@@ -306,7 +309,7 @@ Private Function processToolbar(lang As String)
     For Each Cmdbar In Application.CommandBars ' TODO: peut-être mieux d'utiliser la méthode .findControl() ?
     If Cmdbar.Name = TOOLBARNAME Then
         For Each Ctl In Cmdbar.Controls
-            processSubmenu Ctl, lang
+            processSubmenu Ctl, lang, isComplet
         Next Ctl
     End If
     Next Cmdbar
@@ -314,19 +317,25 @@ Private Function processToolbar(lang As String)
 End Function
 
 ' Fonction récursive de traitement des sous menus et assignation des raccourcis clavier
-Private Function processSubmenu(submenu, lang As String)
+Private Function processSubmenu(submenu, ByVal lang As String, ByVal isComplet As Boolean)
     Dim menuName As String
     Dim styleName As String
     Dim menuId As String
     Dim wordId As String
     Dim key As String
 
+    ' Supprimer le menu s'il n'est pas censé être dans ce modèle (styles complets)
+    If UCase(getIniValue(submenu.Caption, "complet")) = "TRUE" And Not isComplet Then
+        submenu.Delete
+        Exit Function
+    End If
+
     ' Traduire le caption du menu
     menuName = getTranslation(submenu.Caption, "menu", lang)
     If menuName <> vbNullChar Then
         submenu.Caption = menuName
     Else
-        writeLog "Le sous-menu '" + submenu.Caption + "' n'a pas pu être traduit en langue " + lang
+        writeLog "  Le sous-menu '" + submenu.Caption + "' n'a pas pu être traduit en langue " + lang
     End If
 
     ' On boucle sur les enfants du menu'
@@ -335,7 +344,7 @@ Private Function processSubmenu(submenu, lang As String)
 
         ' Si Ctl est un sous menu alors appel recursif de la fonction
         If Ctl.Type = msoControlPopup Then
-            processSubmenu Ctl, lang
+            processSubmenu Ctl, lang, isComplet
         ' Si Ctl est un control...
         ElseIf Ctl.Type = msoControlButton Then
 
@@ -347,7 +356,7 @@ Private Function processSubmenu(submenu, lang As String)
             ElseIf wordId <> vbNullChar Then ' Si la traduction d'un menu associé à un style natif n'est pas donnée alors on cherche la traduction de Word
                 Ctl.Caption = ProcessedDoc.Styles(wordId).NameLocal
             Else
-                writeLog "Le bouton '" + menuId + "' n'a pas pu être traduit en langue " + lang
+                writeLog "  Le bouton '" + menuId + "' n'a pas pu être traduit en langue " + lang
             End If
 
             ' La suite ne concerne pas les boutons qui contiennent un lien hypertexte
@@ -365,7 +374,7 @@ Private Function processSubmenu(submenu, lang As String)
                         styleName = Ctl.Caption
                     End If
                     If Not styleExists(styleName) Then
-                        writeLog "Le style '" + styleName + "' associé au bouton '" + menuId + "' en langue " + lang + " n'existe pas. L'utilisation de ce bouton produira une erreur"
+                        writeLog "  Le style '" + styleName + "' associé au bouton '" + menuId + "' en langue " + lang + " n'existe pas. L'utilisation de ce bouton produira une erreur"
                     End If
                     Ctl.Parameter = styleName
                 End If
@@ -386,6 +395,37 @@ Private Function processSubmenu(submenu, lang As String)
             End If
         End If
     Next Ctl
+End Function
+
+' Process général dans toutes les langues
+' ==========
+
+Private Function translateTemplate(ByVal lang As String, ByVal isComplet As Boolean)
+    Dim tplName As String
+    If isComplet Then
+        tplName = "revuesorg_complet_" + lang + ".dot"
+    Else
+        tplName = "revuesorg_" + lang + ".dot"
+    End If
+    writeLog ""
+    writeLog "Generation du modele " + tplName
+    writeLog "---------------------------------"
+    copyAndOpen getAbsPath(TMPBASEDOT), getAbsPath(BUILD) + "\" + tplName
+    translateStyles lang, isComplet
+    processToolbar lang, isComplet
+    saveAndClose ProcessedDoc
+End Function
+
+' TODO: destLanguage ne devrait plus être globale
+Private Function processAll()
+    Dim currentLang As String
+    For intCount = LBound(DestLanguages) To UBound(DestLanguages)
+        currentLang = Trim(DestLanguages(intCount))
+        If currentLang <> "" Then
+            translateTemplate currentLang, False
+            translateTemplate currentLang, True
+        End If
+    Next
 End Function
 
 ' Subs exposées
@@ -417,7 +457,6 @@ End Sub
 
 ' Lancer la génération des modèles
 Sub runGenerator()
-    Dim currentLang As String
     Dim langFound As Boolean
     Dim user As Integer
     ' Demande de confirmation pour la fermeture des documents ouverts dans Word
@@ -444,19 +483,7 @@ Sub runGenerator()
     Call clearAllKeybindings
     saveAndClose ProcessedDoc
     ' Création d'un modele par langue déclarée : traduction des styles, génération de la toolbar, attribution des actions et des keybindings
-    For intCount = LBound(DestLanguages) To UBound(DestLanguages)
-        currentLang = Trim(DestLanguages(intCount))
-        If currentLang <> "" Then
-            writeLog ""
-            writeLog "+---------------------------------------+"
-            writeLog "¦ Generation du modele revuesorg_" + currentLang + ".dot ¦"
-            writeLog "+---------------------------------------+"
-            copyAndOpen getAbsPath(TMPBASEDOT), getAbsPath(BUILD) + "\revuesorg_" + currentLang + ".dot"
-            translateStyles currentLang
-            processToolbar currentLang
-            saveAndClose ProcessedDoc
-        End If
-    Next
+    Call processAll
     ' Fin
     Call closeLog
     Documents.Open FileName:=getAbsPath(LOGTXT), Visible:=True
