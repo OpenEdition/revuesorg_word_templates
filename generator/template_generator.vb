@@ -197,7 +197,7 @@ Private Function translateStyles(ByVal lang As String, ByVal isComplet As Boolea
                     If Not styleExists(newName) Then ProcessedDoc.Styles(id).NameLocal = newName
                 Else
                     If defaultName = vbNullChar Then
-                        writeLog "  Le style '" + id + "' n'a pas pu être traduit en langue " + lang
+                        writeLog "  Le style '" + id + "' n'a pas pu être traduit en langue " + lang + "."
                     End If
                 End If
             Else
@@ -264,7 +264,7 @@ Private Function getKeyCode(ByVal keyString As String)
         If (keyCode <> vbNullChar) Then
             sum = sum + CInt(keyCode)
         Else
-            writeLog "  Erreur : '" + key + "' n'est pas une touche valide"
+            writeLog "  Erreur : '" + key + "' n'est pas une touche valide" + "."
             getKeyCode = 0
         End If
     Next i
@@ -335,7 +335,7 @@ Private Function processSubmenu(submenu, ByVal lang As String, ByVal isComplet A
     If menuName <> vbNullChar Then
         submenu.Caption = menuName
     Else
-        writeLog "  Le sous-menu '" + submenu.Caption + "' n'a pas pu être traduit en langue " + lang
+        writeLog "  Le sous-menu '" + submenu.Caption + "' n'a pas pu être traduit en langue " + lang + "."
     End If
 
     ' On boucle sur les enfants du menu'
@@ -356,7 +356,9 @@ Private Function processSubmenu(submenu, ByVal lang As String, ByVal isComplet A
             ElseIf wordId <> vbNullChar Then ' Si la traduction d'un menu associé à un style natif n'est pas donnée alors on cherche la traduction de Word
                 Ctl.Caption = ProcessedDoc.Styles(wordId).NameLocal
             Else
-                writeLog "  Le bouton '" + menuId + "' n'a pas pu être traduit en langue " + lang
+                Ctl.Delete
+                writeLog "  Le bouton '" + menuId + "' n'a pas pu être traduit en langue " + lang + ". Le bouton a été supprimé du modèle."
+                Goto NextCtl
             End If
 
             ' La suite ne concerne pas les boutons qui contiennent un lien hypertexte
@@ -374,7 +376,9 @@ Private Function processSubmenu(submenu, ByVal lang As String, ByVal isComplet A
                         styleName = Ctl.Caption
                     End If
                     If Not styleExists(styleName) Then
-                        writeLog "  Le style '" + styleName + "' associé au bouton '" + menuId + "' en langue " + lang + " n'existe pas. L'utilisation de ce bouton produira une erreur"
+                        Ctl.Delete
+                        writeLog "  Le style '" + styleName + "' associé au bouton '" + menuId + "' n'existe pas. Le bouton a été supprimé du modèle."
+                        Goto NextCtl
                     End If
                     Ctl.Parameter = styleName
                 End If
@@ -394,6 +398,7 @@ Private Function processSubmenu(submenu, ByVal lang As String, ByVal isComplet A
                 End If
             End If
         End If
+        NextCtl:
     Next Ctl
 End Function
 
@@ -408,7 +413,7 @@ Private Function translateTemplate(ByVal lang As String, ByVal isComplet As Bool
         tplName = "revuesorg_" + lang + ".dot"
     End If
     writeLog ""
-    writeLog "Generation du modele " + tplName
+    writeLog "Génération du modèle " + tplName
     writeLog "---------------------------------"
     copyAndOpen getAbsPath(TMPBASEDOT), getAbsPath(BUILD) + "\" + tplName
     translateStyles lang, isComplet
