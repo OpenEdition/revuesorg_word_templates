@@ -16,9 +16,9 @@ Selon les partis pris durant la génération des modèles il est également poss
 
 ## Utilisation
 
-## Installation 
+## Installation
 
-Désarchiver `generator` dans le répertoire des modèles de Word afin d'obtenir l'arborescence suivante : 
+Désarchiver `generator` dans le répertoire des modèles de Word afin d'obtenir l'arborescence suivante :
 
 	[user]\AppData\Roaming\Microsoft\Templates\
 		|- generator\
@@ -30,22 +30,22 @@ Désarchiver `generator` dans le répertoire des modèles de Word afin d'obtenir
 
 **Remarque :** Pour Word 2003, le dossier n'est pas "Templates" mais "Modèles".
 
-Le sous-dossier `src` contient les éléments modifiables avant le lancement du `generator`. 
+Le sous-dossier `src` contient les éléments modifiables avant le lancement du `generator`.
 
 Le sous-dossier `build` contient les élément produits après l'exécution : les modèles traduits et `log.txt`.
 
 ## Préparation de `base.dot`
 
-`base.dot` contient l'intégralité des styles et des menus/boutons (modèle complet compris). 
+`base.dot` contient l'intégralité des styles et des menus/boutons (modèle complet compris).
 
 Les opérations suivantes peuvent être réalisées dans `generator/src/base.dot` :
 
-* ajouter ou supprimer des styles 
+* ajouter ou supprimer des styles
 * modifier l'apparence des styles
 * ajouter, supprimer ou réorganiser des menus ou des boutons
 * modifier les icônes des menus ou des boutons
 
-Les opérations concernant le nom des éléments sont réalisées dans `translations.ini` (voir partie consacrée plus bas). 
+Les opérations concernant le nom des éléments sont réalisées dans `translations.ini` (voir partie consacrée plus bas).
 
 De même l'action (ou le style) associée aux boutons des menus n'a aucune importance dans la mesure où elle sera modifiée lors du traitement à partir des informations contenues dans `translations.ini`. On peut donc par exemple choisir d'associer la macro `ApplyLodelStyle` à tous les boutons.
 
@@ -128,7 +128,7 @@ Par convention, les identifiants des menus et sous-menus sont composés de la fa
 
 La clé `[lang].menu` contient la traduction dans la langue `[lang]` du bouton associé.
 
-La clé `[lang].style` contient la traduction dans la langue `[lang]` du style associé. Cette clé n'est pas utilisée pour les menus et sous-menus. 
+La clé `[lang].style` contient la traduction dans la langue `[lang]` du style associé. Cette clé n'est pas utilisée pour les menus et sous-menus.
 
 Exemple :
 
@@ -137,10 +137,10 @@ Exemple :
 fr.menu="Personnes citées"
 fr.style="personnescitees"
 ```
-	
+
 #### Clés de traduction par défaut : `menu` et `style`
 
-Les clés `menu` et `style` permettent d'attribuer des traductions par défaut qui seront appliquées si aucune traduction n'est trouvée dans la langue traitée. 
+Les clés `menu` et `style` permettent d'attribuer des traductions par défaut qui seront appliquées si aucune traduction n'est trouvée dans la langue traitée.
 
 **Attention : l'utilisation d'une traduction par défaut ne provoque pas d'enregistrement dans le `log.txt`, il est donc recommandé de limiter son utilisation aux éléments qui ne sont jamais traduits (index linguistiques par exemple) afin de conserver un log pertinent.**
 
@@ -186,7 +186,7 @@ Elle peuvent être combinées aux modificateurs : `Alt`, `Control` (ou `Ctrl`), 
 
 #### Traitement des styles natifs de Word avec la clé `wordId`
 
-Quand un style est nativement pris en charge par Word (style natif), il est préférable de ne pas le traduire et de le traiter en utilisant son identifiant Word. Word affichera automatiquement ce style dans la langue de l'utilisateur et le bouton d'application du style sera utilisable quelle que soit la version linguistique de Word (c'est donc cette option qui permet une utilisation universelle du modèle, quelle que soit la langue de Word). 
+Quand un style est nativement pris en charge par Word (style natif), il est préférable de ne pas le traduire et de le traiter en utilisant son identifiant Word. Word affichera automatiquement ce style dans la langue de l'utilisateur et le bouton d'application du style sera utilisable quelle que soit la version linguistique de Word (c'est donc cette option qui permet une utilisation universelle du modèle, quelle que soit la langue de Word).
 
 On utilise pour cela la clé `wordId` qui prend la valeur `WdBuiltinStyle` correspondante, à retrouver ici : https://msdn.microsoft.com/en-us/library/bb237495%28v=office.12%29.aspx
 
@@ -199,7 +199,7 @@ wordId="-63"
 
 **Remarque :** certains styles natifs (dont les citations) ne sont natifs que depuis Word 2007. Utiliser la clé `wordId ` avec ces styles produira donc une erreur lors de l'utilisation du modèle dans Word 2003.
 
-Cet exemple fonctionnera donc sur toutes les versions linguistiques de Word mais uniquement à partir de Word 2007 : 
+Cet exemple fonctionnera donc sur toutes les versions linguistiques de Word mais uniquement à partir de Word 2007 :
 
 ```ini
 [$citation]
@@ -218,7 +218,7 @@ en.menu="Quotation"
 
 #### Lien hypertexte : clé `link` (et `[lang].link`)
 
-La clé `link` permet d'attribuer un redirection hypertexte à un bouton. Comme avec `style`, `menu` et `key`, il est possible de contextualiser la valeur à la langue du modèle. 
+La clé `link` permet d'attribuer un redirection hypertexte à un bouton. Comme avec `style`, `menu` et `key`, il est possible de contextualiser la valeur à la langue du modèle.
 
 Voici par exemple un bouton qui ouvre le navigateur de l'utilisateur sur une page web différente selon la langue :
 
@@ -250,7 +250,7 @@ La macro `generator.dot` doit être attachée dans Word en tant que "Modèles gl
 * Le bouton "Générer les modèles traduits" permet de lancer `generator`. Le journal des erreurs `log.txt` est affiché à la fin du traitement.
 * Le bouton "Ouvrir le répertoire des modèles générés" affiche le répertoire `generator\build\` dans lequel se trouve les modèles produits par la macro.
 
-## Journal des erreurs 
+## Journal des erreurs
 
 Le journal `build\log.txt` contient les éventuelles erreurs rencontrées lors de la dernière exécution du `generator`. Le plus souvent il s'agit d'une traduction manquante dans `translation.ini`. Le journal des erreurs permet donc de détecter les oublis de traductions ou les styles inexistants.
 
@@ -274,9 +274,7 @@ Il est probablement basé sur un autre style qui a été supprimé. Vérifier da
 
 Tous les styles supplémentaires présents dans `base.dot` seront copiés dans les modèles, il est donc important de nettoyer correctement ce modèle. Si nécessaire (notamment pour nettoyer les styles " Car Car") on pourra utiliser la macro "style management.dot" : http://h2fooko.free.fr/spip.php?article19
 
-**TODO:** la macro pourrait filtrer les styles afin de ne laisser passer que ceux qui commencent par $
-
-### Les caractères accentués, les idéogrammes, etc. sont remplacés par des points d'interrogation 
+### Les caractères accentués, les idéogrammes, etc. sont remplacés par des points d'interrogation
 
 Vérifier que `translations.ini` est bien encodé en utf-8.
 
@@ -287,7 +285,7 @@ Vérifier que `translations.ini` est bien encodé en utf-8.
 
 ### Tel bouton fonctionne mais pas son raccourci clavier
 
-Word se réserve l'utilisation de certaines combinaisons de touches. Le cas échéant, l'option `key` n'est pas appliquée. Il faut alors essayer un autre raccourci clavier. 
+Word se réserve l'utilisation de certaines combinaisons de touches. Le cas échéant, l'option `key` n'est pas appliquée. Il faut alors essayer un autre raccourci clavier.
 
 ### Comment faire pour qu'un bouton/menu/style ne soit supprimer dans telle langue
 

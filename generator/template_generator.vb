@@ -13,6 +13,7 @@ Const ROOT As String = "\generator"
 Const BASEDOT As String = "\src\base.dot"
 Const TRANSLATIONS As String = "\src\translations.ini"
 Const ENUMERATIONS As String = "\utils\enumerations.ini"
+Const TMP = "\tmp"
 Const TMPTRANSLATIONS As String = "\tmp\translations.tmp.ini"
 Const TMPENUMERATIONS As String = "\tmp\enumerations.tmp.ini"
 Const TMPBASEDOT As String = "\tmp\base.tmp.dot"
@@ -132,6 +133,23 @@ Private Function deleteFile(ByVal FileToDelete As String)
       SetAttr FileToDelete, vbNormal
       Kill FileToDelete
    End If
+End Function
+
+Private Function folderExists(ByVal folderToTest As String) As Boolean
+    folderExists = (Dir(folderToTest, vbDirectory) <> "")
+End Function
+
+Private Function deleteFolder(ByVal folderToDelete As String)
+    If folderExists(folderToDelete) Then
+        Kill folderToDelete + "\*.*"
+        RmDir folderToDelete
+    End If
+End Function
+
+Private Function createFolder(ByVal folderPath As String)
+    If Not folderExists(folderPath) Then
+        MkDir folderPath
+    End If
 End Function
 
 Private Function copyAndOpen(ByVal src As String, ByVal dest As String)
@@ -484,7 +502,13 @@ Sub AutoExec()
 End Sub
 
 Sub openDestFolder()
-    Call Shell("explorer.exe" & " " & getAbsPath(BUILD), vbNormalFocus)
+    Dim path As String
+    path = getAbsPath(BUILD)
+    If folderExists(path) Then
+        Call Shell("explorer.exe" & " " & path, vbNormalFocus)
+    Else
+        MsgBox "Le répertoire demandé n'existe pas. Veuillez d'abord exécuter le générateur de modèles.", vbCritical
+    End If
 End Sub
 
 ' Lancer la génération des modèles
@@ -499,6 +523,9 @@ Sub runGenerator()
         End If
     End If
     Call closeAll
+    ' Créer les dossiers build et tmp s'ils n'existent pas déjà
+    createFolder getAbsPath(TMP)
+    createFolder getAbsPath(BUILD)
     ' Convertir l'encodage des fichiers INI
     toUtf16 getAbsPath(TRANSLATIONS), getAbsPath(TMPTRANSLATIONS)
     toUtf16 getAbsPath(ENUMERATIONS), getAbsPath(TMPENUMERATIONS)
@@ -517,6 +544,7 @@ Sub runGenerator()
     ' Création d'un modele par langue déclarée : traduction des styles, génération de la toolbar, attribution des actions et des keybindings
     Call processAll
     ' Fin
+    deleteFolder getAbsPath(TMP)
     Call closeLog
     Documents.Open FileName:=getAbsPath(LOGTXT), Visible:=True
     MsgBox "Les modèles ont été générés dans le dossier generator/build/." + Chr(10) + Chr(10) + "Merci de vérfier qu'aucune erreur n'a été rencontrée en consultant le log des erreurs.", 64, "Opération terminée avec succès"
