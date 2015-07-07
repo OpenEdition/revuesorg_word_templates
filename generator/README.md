@@ -18,13 +18,11 @@ Selon les partis pris durant la génération des modèles il est également poss
 
 ## Installation
 
-Désarchiver `generator` dans le répertoire des modèles de Word afin d'obtenir l'arborescence suivante :
+Placer le dossier `generator` dans le répertoire des modèles de Word afin d'obtenir l'arborescence suivante :
 
 	[user]\AppData\Roaming\Microsoft\Templates\
 		|- generator\
-			|- build
 			|- src
-			|- tmp
 			|- utils
 			|- generator.dot
 
@@ -263,6 +261,10 @@ Lorsqu'une erreur est rencontrée, le style et/ou le menu associé est supprimé
 fr.menu="Ordre des métadonnées"
 fr.hyperlink="http://maisondesrevues.org/108"
 ```
+
+## Développement
+
+La macro est en double dans le dépot : `generator.vb` (brut) et `generator.dot` (binaire Word). Les deux versions sont (et doivent rester) identiques.
 
 ## FAQ
 
