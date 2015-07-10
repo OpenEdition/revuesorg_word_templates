@@ -8,7 +8,7 @@ Private os As String
 Private Function getWordLang() As String
     ' https://msdn.microsoft.com/en-us/library/aa432635%28v=office.12%29.aspx
     Select Case Application.Language
-    Case msoLanguageIDEnglishAUS, msoLanguageIDEnglishBelize, msoLanguageIDEnglishCanadian, msoLanguageIDEnglishCaribbean, msoLanguageIDEnglishIndonesia, msoLanguageIDEnglishIreland, msoLanguageIDEnglishJamaica, msoLanguageIDEnglishNewZealand, msoLanguageIDEnglishPhilippines, msoLanguageIDEnglishSouthAfrica, msoLanguageIDEnglishTrinidadTobago, msoLanguageIDEnglishUK, msoLanguageIDEnglishUS, msoLanguageIDEnglishZimbabwe
+        Case msoLanguageIDEnglishAUS, msoLanguageIDEnglishBelize, msoLanguageIDEnglishCanadian, msoLanguageIDEnglishCaribbean, msoLanguageIDEnglishIndonesia, msoLanguageIDEnglishIreland, msoLanguageIDEnglishJamaica, msoLanguageIDEnglishNewZealand, msoLanguageIDEnglishPhilippines, msoLanguageIDEnglishSouthAfrica, msoLanguageIDEnglishTrinidadTobago, msoLanguageIDEnglishUK, msoLanguageIDEnglishUS, msoLanguageIDEnglishZimbabwe
             getWordLang = "en"
         Case msoLanguageIDFrench, msoLanguageIDFrenchCameroon, msoLanguageIDFrenchCanadian, msoLanguageIDFrenchCotedIvoire, msoLanguageIDFrenchHaiti, msoLanguageIDFrenchLuxembourg, msoLanguageIDFrenchMali, msoLanguageIDFrenchMonaco, msoLanguageIDFrenchMorocco, msoLanguageIDFrenchReunion, msoLanguageIDFrenchSenegal, msoLanguageIDFrenchWestIndies, msoLanguageIDFranchCongoDRC, msoLanguageIDBelgianFrench, msoLanguageIDSwissFrench
             getWordLang = "fr"
@@ -28,29 +28,33 @@ Private Function trad(id As String, Optional lang As String = "")
             trad = "Start styling for Lodel"
 		Case "fr.start"
 			trad = "Démarrer le stylage pour Lodel"
-        Case "en.options"
-            trad = "Options"
-		Case "fr.options"
-            trad = "Options"
-		Case "en.language"
-			trad = "Language"
-		Case "fr.language"
-			trad = "Langue"
-		Case "en.showAdditionalTemplate"
-			trad = "Show additional styles"
-		Case "fr.showAdditionalTemplate"
-			trad = "Afficher les styles complémentaires"
+		Case "en.startFullTemplate"
+			trad = "Full template (advanced)"
+		Case "fr.startFullTemplate"
+			trad = "Modèle complet (avancé)"
+        Case "en.templates"
+			trad = "Other template"
+		Case "fr.templates"
+			trad = "Autre modèle"
         Case Else
             trad = "undefined"
     End Select
 End Function
 
-Function showIfDefaultLang (text As String, lang As String)
-	If lang = wordLang Then
-		showIfDefaultLang = text
-	Else
-		showIfDefaultLang = ""
-	End If
+Private Function addTemplatesToMenu(subMenu As CommandBarControl)
+    Dim tplPath As String
+    Dim strFile As String
+    Dim subMenuItem As CommandBarControl
+    tplPath = Options.DefaultFilePath(Path:=wdUserTemplatesPath)
+    strFile = Dir(tplPath + "\revuesorg_*.dot")
+    Do While Len(strFile) > 0
+        Set subMenuItem = subMenu.Controls.Add(Type:=msoControlButton)
+        With subMenuItem
+            .Caption = strFile
+            .OnAction = "startOtherTemplate"
+        End With
+        strFile = Dir
+    Loop
 End Function
 
 Private Sub generateStartLodelMenu()
@@ -72,37 +76,25 @@ Private Sub generateStartLodelMenu()
 
 	Set subMenu = menuBar.Controls.Add(Type:=msoControlPopup)
 	subMenu.BeginGroup = True
-	subMenu.Caption = trad("options")
+	subMenu.Caption = "+"
 
-	Set subSubMenu = subMenu.Controls.Add(Type:=msoControlPopup)
-	subSubMenu.Caption = trad("language")
-
-	Set subMenuItem = subSubMenu.Controls.Add(Type:=msoControlButton)
-	With subMenuItem
-		.Caption = "English" + showIfDefaultLang(" (default)", "en")
-		.OnAction = "startRevuesOrgEn"
-	End With
-
-	Set subMenuItem = subSubMenu.Controls.Add(Type:=msoControlButton)
-	With subMenuItem
-		.Caption = "Français" + showIfDefaultLang(" (par défaut)", "fr")
-		.OnAction = "startRevuesOrgFr"
-	End With
-
-	Set subMenuItem = subMenu.Controls.Add(Type:=msoControlButton)
+    Set subMenuItem = subMenu.Controls.Add(Type:=msoControlButton)
 	With subMenuItem
 		.BeginGroup = True
-		.Caption = trad("showAdditionalTemplate")
-		.OnAction = "showAdditionalTemplate"
+		.Caption = trad("startFullTemplate")
+		.OnAction = "startFullTemplate"
 	End With
+
+	Set subSubMenu = subMenu.Controls.Add(Type:=msoControlPopup)
+	subSubMenu.Caption = trad("templates")
+
+    addTemplatesToMenu subSubMenu
 End Sub
 
-Sub doStart(lang As String)
-	Dim tpl As String
+Sub doStart(tpl As String)
 	Dim macro As String
 
     ' TODO: tester les paths sur OS X
-	tpl = Options.DefaultFilePath(Path:=wdUserTemplatesPath) + "\revuesorg_" + lang + ".dot"
 	macro = Options.DefaultFilePath(Path:=wdUserTemplatesPath) + "\macros_revuesorg_" + os + ".dot"
 
 	If ActiveWindow.View.SplitSpecial = wdPaneNone Then
@@ -126,19 +118,24 @@ Sub doStart(lang As String)
 End Sub
 
 Sub startRevuesOrgDefault()
-    doStart (wordLang)
+    Dim tpl As String
+    tpl = Options.DefaultFilePath(Path:=wdUserTemplatesPath) + "\revuesorg_" + wordLang + ".dot"
+    doStart tpl
 End Sub
 
-Sub startRevuesOrgFr()
-    doStart ("fr")
+Sub startOtherTemplate()
+    Dim ctlCBarControl  As CommandBarControl
+    Dim tpl As String
+    Set ctlCBarControl = CommandBars.ActionControl
+    If ctlCBarControl Is Nothing Then Exit Sub
+    tpl = Options.DefaultFilePath(Path:=wdUserTemplatesPath) + "\" + ctlCBarControl.caption
+    doStart tpl
 End Sub
 
-Sub startRevuesOrgEn()
-    doStart ("en")
-End Sub
-
-Sub showAdditionalTemplate()
-	MsgBox("Todo")
+Sub startFullTemplate()
+    Dim tpl As String
+    tpl = Options.DefaultFilePath(Path:=wdUserTemplatesPath) + "\revuesorg_complet_" + wordLang + ".dot"
+    doStart tpl
 End Sub
 
 Sub AutoExec()
