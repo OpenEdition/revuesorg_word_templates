@@ -1,0 +1,6 @@
+Ignore src & output
+################
+
+*.doc
+*.dot
+Output
