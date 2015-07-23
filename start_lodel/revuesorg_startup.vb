@@ -2,9 +2,6 @@
 ' Generates a menu to handle automatically Revues.org templates and macros
 ' Installation : create a .dot file from this code and move it into the Word "Startup" folder
 
-Private wordLang As String
-Private os As String
-
 Private Function getWordLang() As String
     ' https://msdn.microsoft.com/en-us/library/aa432635%28v=office.12%29.aspx
     Select Case Application.Language
@@ -17,10 +14,20 @@ Private Function getWordLang() As String
     End Select
 End Function
 
+' Testing OS: http://www.rondebruin.nl/mac/mac001.htm
+Private Function getOs() As String
+    ' TODO: A tester sur mac (+ les paths)
+    #If Mac Then
+        getOs = "mac"
+    #Else
+        getOs = "win"
+    #End If
+End Function
+
 Private Function trad(id As String, Optional lang As String = "")
 	Dim key as String
 	If lang = "" Then
-		lang = wordLang
+		lang = getWordLang()
 	End If
 	key = lang + "." + id
     Select Case key
@@ -93,10 +100,11 @@ End Sub
 
 Sub doStart(tpl As String)
 	Dim macro As String
+    Dim os As String
     ' Fix pour gerer les floats correctement dans toutes les langues. Voir : http://stackoverflow.com/questions/16191557/vba-word-changing-decimal-separator
     Dim strDecimal As String
     strDecimal = Application.International(wdDecimalSeparator)
-    ' TODO: tester les paths sur OS X
+    os = getOs()
 	macro = Options.DefaultFilePath(Path:=wdUserTemplatesPath) + "\macros_revuesorg_" + os + ".dot"
 
 	If ActiveWindow.View.SplitSpecial = wdPaneNone Then
@@ -122,6 +130,8 @@ End Sub
 
 Sub startRevuesOrgDefault()
     Dim tpl As String
+    Dim wordLang As String
+    wordLang = getWordLang()
     tpl = Options.DefaultFilePath(Path:=wdUserTemplatesPath) + "\revuesorg_" + wordLang + ".dot"
     doStart tpl
 End Sub
@@ -137,19 +147,12 @@ End Sub
 
 Sub startFullTemplate()
     Dim tpl As String
+    Dim wordLang As String
+    wordLang = getWordLang()
     tpl = Options.DefaultFilePath(Path:=wdUserTemplatesPath) + "\revuesorg_complet_" + wordLang + ".dot"
     doStart tpl
 End Sub
 
 Sub AutoExec()
-	' Testing OS: http://www.rondebruin.nl/mac/mac001.htm
-	' TODO: A tester sur mac
-    ' FIXME: Si les macros sont désactivées par Word au moment de la première execution alors os est vide et le reste à moins de redémarrer Word ! Vient peut-etre du fait qu'on utilise ici #If qui teste l'environement AVANT la compilation (du coup c'est probablement exécuté une seule fois).
-    #If Mac Then
-        os = "mac"
-    #Else
-        os = "win"
-    #End If
-	wordLang = getWordLang()
 	Call generateStartLodelMenu
 End Sub
