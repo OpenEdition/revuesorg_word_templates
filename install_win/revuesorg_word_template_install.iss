@@ -29,6 +29,7 @@ Compression=lzma
 SolidCompression=yes
 WizardImageFile=img\logo.bmp
 WizardSmallImageFile=img\icon.bmp
+SetupIconFile=img\revuesorg.ico
 
 [Messages]
 BeveledLabel= {#SetupVersion}
