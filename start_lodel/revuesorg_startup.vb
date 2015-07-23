@@ -93,7 +93,9 @@ End Sub
 
 Sub doStart(tpl As String)
 	Dim macro As String
-
+    ' Fix pour gerer les floats correctement dans toutes les langues. Voir : http://stackoverflow.com/questions/16191557/vba-word-changing-decimal-separator
+    Dim strDecimal As String
+    strDecimal = Application.International(wdDecimalSeparator)
     ' TODO: tester les paths sur OS X
 	macro = Options.DefaultFilePath(Path:=wdUserTemplatesPath) + "\macros_revuesorg_" + os + ".dot"
 
@@ -108,13 +110,14 @@ Sub doStart(tpl As String)
     ActiveDocument.FormattingShowParagraph = True
     ActiveDocument.FormattingShowNumbering = True
     ActiveDocument.FormattingShowFilter = wdShowFilterStylesInUse
-    ActiveDocument.FormattingShowUserStyleName = True ' Afficher les noms de substitution quand on change le nom d'un style natif
     AddIns.Add FileName:=macro, Install:=True
     ActiveDocument.UpdateStylesOnOpen = True
     ActiveDocument.AttachedTemplate = tpl
     ActiveDocument.XMLSchemaReferences.AutomaticValidation = True
     ActiveDocument.XMLSchemaReferences.AllowSaveAsXMLWithoutValidation = False
     ActiveWindow.View.ShowBookmarks = True
+    ' Afficher les noms de substitution quand on change le nom d'un style natif (Word 2007 et supérieurs uniquement)
+    If CDbl(Replace(Application.Version, ".", strDecimal)) > 11 Then ActiveDocument.FormattingShowUserStyleName = True
 End Sub
 
 Sub startRevuesOrgDefault()
@@ -141,6 +144,7 @@ End Sub
 Sub AutoExec()
 	' Testing OS: http://www.rondebruin.nl/mac/mac001.htm
 	' TODO: A tester sur mac
+    ' FIXME: Si les macros sont désactivées par Word au moment de la première execution alors os est vide et le reste à moins de redémarrer Word ! Vient peut-etre du fait qu'on utilise ici #If qui teste l'environement AVANT la compilation (du coup c'est probablement exécuté une seule fois).
     #If Mac Then
         os = "mac"
     #Else
