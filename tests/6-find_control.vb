@@ -22,14 +22,17 @@ Sub ShowShortcutMenuItems()
   Dim lodelStylesBar As CommandBar
   Dim Ctl As CommandBarControl
   Application.ScreenUpdating = False
-  For Each lodelStylesBar In Application.CommandBars
-    If lodelStylesBar.Name = "testbar" Then
-      For Each Ctl In lodelStylesBar.Controls
-          Debug.Print Ctl.caption
-          Debug.Print Ctl.Tag
-     Next Ctl
-   End If
-  Next lodelStylesBar
+    For Each lodelStylesBar In Application.CommandBars
+        If lodelStylesBar.Name = "testbar" Then
+            For Each Ctl In lodelStylesBar.Controls
+                Debug.Print "Caption: " & Ctl.Caption & " - " & TypeName(Ctl.Caption)
+                Debug.Print "Tag: " & Ctl.Tag & " - " & TypeName(Ctl.Tag)
+                Debug.Print "Parameter: " & Ctl.Parameter & " - " & TypeName(Ctl.Parameter)
+                Debug.Print "ID: " & Ctl.ID & " - " & TypeName(Ctl.ID)
+                Debug.Print "OnAction: " & Ctl.OnAction & " - " & TypeName(Ctl.OnAction)
+            Next Ctl
+        End If
+   Next lodelStylesBar
 End Sub
 
 Sub test()
