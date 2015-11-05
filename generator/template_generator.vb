@@ -369,9 +369,6 @@ Private Function processSubmenu(submenu, ByVal lang As String, ByVal isComplet A
             ' La suite ne concerne pas les boutons qui contiennent un lien hypertexte
             If Ctl.HyperlinkType <> msoCommandBarButtonHyperlinkOpen Then
 
-                ' Attacher la macro d'application de styles
-                Ctl.OnAction = MACRONAME
-
                 ' Assigner le parameter qui sera transmis a la macro d'application de styles
                 styleName = getTranslation(menuId, "style", lang)
                 If styleName = vbNullChar Then
