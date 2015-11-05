@@ -321,6 +321,7 @@ Private Function processSubmenu(submenu, ByVal lang As String, ByVal isComplet A
     Dim menuId As String
     Dim key As String
     Dim hyperlink As String
+    Dim builtIn As String
 
     ' Supprimer le menu s'il n'est pas censé être dans ce modèle (styles complets)
     If UCase(getIniValue(submenu.Caption, "complet")) = "TRUE" And Not isComplet Then
@@ -376,7 +377,9 @@ Private Function processSubmenu(submenu, ByVal lang As String, ByVal isComplet A
                 If styleName = vbNullChar Then
                     styleName = Ctl.Caption
                 End If
-                If Not styleExists(styleName) Then
+                ' On vérifie que le style correspondant existe bien avant de créer le bouton (sauf pour les styles natifs)
+                builtIn = getTranslation(menuId, "builtIn", lang)
+                If Not styleExists(styleName) And builtIn <> "true" Then
                     Ctl.Delete
                     writeLog "  Le style '" + styleName + "' associé au bouton '" + menuId + "' n'existe pas. Le bouton a été supprimé du modèle."
                     Goto NextCtl
@@ -390,7 +393,7 @@ Private Function processSubmenu(submenu, ByVal lang As String, ByVal isComplet A
                     ' Assigner
                     addStyleKeyBinding styleName, key
                     ' Ajouter la mention du raccourci dans le menu
-                    Ctl.Caption = Ctl.Caption + vbTab + " <" + key + ">"
+                    Ctl.Caption = Ctl.Caption + " <" + key + ">"
                 End If
             End If
         End If
