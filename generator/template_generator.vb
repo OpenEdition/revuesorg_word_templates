@@ -199,7 +199,6 @@ Private Function translateStyles(ByVal lang As String, ByVal isComplet As Boolea
     Dim baseDocument As Document
     Dim id As String
     Dim newName As String
-    Dim wordId As String
 
     writeLog ""
     writeLog "# Traduction des styles"
@@ -209,35 +208,16 @@ Private Function translateStyles(ByVal lang As String, ByVal isComplet As Boolea
         id = Style.NameLocal
 
         If Not (UCase(getIniValue(id, "complet")) = "TRUE" And Not isComplet) Then ' Ne traduire les styles complets que quand c'est demandé
-            If Style.BuiltIn = False Then
-                newName = getTranslation(id, "style", lang)
-                If newName <> vbNullChar Then
-                    If Not styleExists(newName) Then ProcessedDoc.Styles(id).NameLocal = newName
-                Else
-                    If defaultName = vbNullChar Then
-                        writeLog "  Le style '" + id + "' n'a pas pu être traduit en langue " + lang + "."
-                    End If
-                End If
+            newName = getTranslation(id, "style", lang)
+            If newName <> vbNullChar Then
+                If Not styleExists(newName) Then ProcessedDoc.Styles(id).NameLocal = newName
             Else
-                wordId = getIniValue(id, "wordId")
-                ' Traduire les builtInStyles pour ce modèle. N'est indispensable car Word les traduit automatiquement, c'est pourquoi on n'enregistre pas d'erreur si pas de traduction
-                If wordId <> vbNullChar Then
-                    styleName = getTranslation(id, "style", lang)
-                    If styleName <> vbNullChar Then
-                        ProcessedDoc.Styles(wordId).NameLocal = styleName
-                    End If
+                If defaultName = vbNullChar Then
+                    writeLog "  Le style '" + id + "' n'a pas pu être traduit en langue " + lang + "."
                 End If
             End If
         End If
     Next Style
-
-    ' Traduire les builtInStyles pour ce modèle. N'est indispensable car Word les traduit automatiquement, c'est pourquoi on n'enregistre pas d'erreur si pas de traduction
-    If wordId <> vbNullChar Then
-        styleName = getTranslation(id, "style", lang)
-        If styleName <> vbNullChar Then
-            ProcessedDoc.Styles(wordId).NameLocal = styleName
-        End If
-    End If
 
     baseDocument.Close
     ' Supprimer tous les styles préfixés ($) résiduels
@@ -339,7 +319,6 @@ Private Function processSubmenu(submenu, ByVal lang As String, ByVal isComplet A
     Dim menuName As String
     Dim styleName As String
     Dim menuId As String
-    Dim wordId As String
     Dim key As String
     Dim hyperlink As String
 
@@ -371,11 +350,8 @@ Private Function processSubmenu(submenu, ByVal lang As String, ByVal isComplet A
 
             ' Traduire le caption du controle
             menuName = getTranslation(menuId, "menu", lang)
-            wordId = getIniValue(menuId, "wordId")
             If menuName <> vbNullChar Then
                 Ctl.Caption = menuName
-            ElseIf wordId <> vbNullChar Then ' Si la traduction d'un menu associé à un style natif n'est pas donnée alors on cherche la traduction de Word
-                Ctl.Caption = ProcessedDoc.Styles(wordId).NameLocal
             Else
                 Ctl.Delete
                 writeLog "  Le bouton '" + menuId + "' n'a pas pu être traduit en langue " + lang + ". Le bouton a été supprimé du modèle."
@@ -396,31 +372,23 @@ Private Function processSubmenu(submenu, ByVal lang As String, ByVal isComplet A
                 Ctl.OnAction = MACRONAME
 
                 ' Assigner le parameter qui sera transmis a la macro d'application de styles
-                If wordId <> vbNullChar Then
-                    Ctl.Parameter = wordId
-                Else
-                    styleName = getTranslation(menuId, "style", lang)
-                    If styleName = vbNullChar Then
-                        styleName = Ctl.Caption
-                    End If
-                    If Not styleExists(styleName) Then
-                        Ctl.Delete
-                        writeLog "  Le style '" + styleName + "' associé au bouton '" + menuId + "' n'existe pas. Le bouton a été supprimé du modèle."
-                        Goto NextCtl
-                    End If
-                    Ctl.Parameter = styleName
+                styleName = getTranslation(menuId, "style", lang)
+                If styleName = vbNullChar Then
+                    styleName = Ctl.Caption
                 End If
+                If Not styleExists(styleName) Then
+                    Ctl.Delete
+                    writeLog "  Le style '" + styleName + "' associé au bouton '" + menuId + "' n'existe pas. Le bouton a été supprimé du modèle."
+                    Goto NextCtl
+                End If
+                Ctl.Parameter = styleName
 
                 ' Assigner le keybinding s'il existe
                 ' Remarque : on n'ecrit rien dans le log concernant les keybindings pour éviter de le poluer
                 key = getTranslation(menuId, "key", lang)
                 If key <> vbNullChar Then
                     ' Assigner
-                    If wordId <> vbNullChar Then
-                        addStyleKeyBinding wordId, key
-                    Else
-                        addStyleKeyBinding styleName, key
-                    End If
+                    addStyleKeyBinding styleName, key
                     ' Ajouter la mention du raccourci dans le menu
                     Ctl.Caption = Ctl.Caption + vbTab + " <" + key + ">"
                 End If
