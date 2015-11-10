@@ -5,7 +5,7 @@ Installateur des modèles Word pour Windows.
 ## Compatibilité
 
 * Word 2003 (version française uniquement) et versions ultérieures (toutes versions)
-* Windows XP, Vista, 7 et 8 
+* Windows XP, Vista, 7, 8 et 10
 
 ## Limitations 
 
@@ -18,13 +18,20 @@ Installateur des modèles Word pour Windows.
 
 L'installateur est développé avec Inno Setup : http://jrsoftware.org/isinfo.php
 
-Placer les modèles dans src/templates/ et la macro de démarrage rapide dans src/startup, puis lancer la compilation avec Inno Setup.
+Voir la documentation générale pour les instructions de compilation.
 
-### Versions (à mettre à jour lors de la mise à jour des modèles de la source)
+### Versions 
 
 [Version des modèles].[Révision de l'installateur]
 
+La version est automatiquement mise à jour à partir du fichier `translations.ini`.
+
 ## Changelog
+
+**4.0.2.2**
+
+* Utilisation intégrée avec le génrateur de modèles. 
+* La version ets automatiquement retrouvée à partir de `translations.ini` (il n'est plus nécessaire de modifier le code source de l'installateur lors de la mise à jour des modèles).
 
 **4.0.2.1**
 
