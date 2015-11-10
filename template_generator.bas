@@ -9,7 +9,7 @@
 ' ==========
 
 ' Chemins
-Const ROOT As String = "\generator"
+Const ROOT As String = "\revuesorg_word_templates"
 Const BASEDOT As String = "\src\base.dot"
 Const TRANSLATIONS As String = "\src\translations.ini"
 Const ENUMERATIONS As String = "\utils\enumerations.ini"
@@ -18,7 +18,8 @@ Const TMPTRANSLATIONS As String = "\tmp\translations.tmp.ini"
 Const TMPENUMERATIONS As String = "\tmp\enumerations.tmp.ini"
 Const TMPBASEDOT As String = "\tmp\base.tmp.dot"
 Const BUILD = "\build"
-Const LOGTXT As String = "\build\log.txt"
+Const BUILDTEMPLATES = "\build\templates"
+Const LOGTXT As String = "\build\generator_log.txt"
 
 ' Elements dans base.dot
 Const TOOLBARNAME As String = "LodelStyles"
@@ -427,7 +428,7 @@ Private Function translateTemplate(ByVal lang As String, ByVal isComplet As Bool
     writeLog ""
     writeLog "Génération du modèle " + tplName
     writeLog "---------------------------------"
-    copyAndOpen getAbsPath(TMPBASEDOT), getAbsPath(BUILD) + "\" + tplName
+    copyAndOpen getAbsPath(TMPBASEDOT), getAbsPath(BUILDTEMPLATES) + "\" + tplName
     addTplInfo tplName
     translateStyles lang, isComplet
     processToolbar lang, isComplet
@@ -463,7 +464,7 @@ Sub AutoExec()
     End With
     Set menuItem = menuBar.Controls.Add(Type:=msoControlButton)
     With menuItem
-        .Caption = "Ouvrir le répertoire des modèles générés"
+        .Caption = "Ouvrir le répertoire de la macro"
         .OnAction = "openDestFolder"
         .Style = msoButtonCaption
     End With
@@ -471,11 +472,11 @@ End Sub
 
 Sub openDestFolder()
     Dim path As String
-    path = getAbsPath(BUILD)
+    path = getAbsPath()
     If folderExists(path) Then
         Call Shell("explorer.exe" & " " & path, vbNormalFocus)
     Else
-        MsgBox "Le répertoire demandé n'existe pas. Veuillez d'abord exécuter le générateur de modèles.", vbCritical
+        MsgBox "Le répertoire 'revuesorg_word_templates' n'existe pas. Vérifiez que la macro est correctement installée.", vbCritical
     End If
 End Sub
 
@@ -483,6 +484,13 @@ End Sub
 Sub runGenerator()
     Dim langFound As Boolean
     Dim user As Integer
+    Dim rootPath As String
+    ' Vérification de l'intégrité de l'arborescence de la macro
+    rootPath = getAbsPath()
+    If Not folderExists(rootPath) Then
+        MsgBox "Le répertoire 'revuesorg_word_templates' n'existe pas. Vérifiez que la macro est correctement installée.", vbCritical
+        Exit Sub
+    End If
     ' Demande de confirmation pour la fermeture des documents ouverts dans Word
     If Application.Documents.Count <> 0 Then
         user = MsgBox("L'exécution du générateur de modèles va entrainer la fermeture tous les documents actuellement ouverts dans Word. L'enregistrement sera proposé pour tous les documents qui n'ont pas été sauvegardés.", vbOKCancel + vbQuestion, "Génération des modèles")
@@ -494,6 +502,7 @@ Sub runGenerator()
     ' Créer les dossiers build et tmp s'ils n'existent pas déjà
     createFolder getAbsPath(TMP)
     createFolder getAbsPath(BUILD)
+    createFolder getAbsPath(BUILDTEMPLATES)
     ' Convertir l'encodage des fichiers INI
     toUtf16 getAbsPath(TRANSLATIONS), getAbsPath(TMPTRANSLATIONS)
     toUtf16 getAbsPath(ENUMERATIONS), getAbsPath(TMPENUMERATIONS)
@@ -515,5 +524,5 @@ Sub runGenerator()
     deleteFolder getAbsPath(TMP)
     Call closeLog
     Documents.Open FileName:=getAbsPath(LOGTXT), Visible:=True
-    MsgBox "Les modèles ont été générés dans le dossier generator/build/." + Chr(10) + Chr(10) + "Merci de vérfier qu'aucune erreur n'a été rencontrée en consultant le log des erreurs.", 64, "Opération terminée avec succès"
+    MsgBox "Les modèles ont été générés dans le dossier build/templates." + Chr(10) + Chr(10) + "Merci de vérfier qu'aucune erreur n'a été rencontrée en consultant le log des erreurs.", 64, "Opération terminée avec succès"
 End Sub
