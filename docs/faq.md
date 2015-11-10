@@ -18,6 +18,10 @@ Vérifier que `translations.ini` est bien encodé en utf-8.
 
 Word se réserve l'utilisation de certaines combinaisons de touches. Le cas échéant, l'option `key` n'est pas appliquée. Il faut alors essayer un autre raccourci clavier.
 
+### Le bouton d'un style ne fonctionne pas
+
+S'il s'agit d'un style natif, vérifier que son attribut `[lang].style` de `translations.ini` correspond exactement au nom du style dans la langue cible.
+
 ### Comment faire pour qu'un bouton/menu/style soit supprimé dans une langue définie
 
 Voir dans [la documentation sur translations.ini](template_generator.md) "Conditionner l'insertion d'un élément à la langue".
@@ -25,5 +29,3 @@ Voir dans [la documentation sur translations.ini](template_generator.md) "Condit
 ### Word produit une erreur lors de l'exécution
 
 Fermer toutes les instances de Word, relancer et réessayer la macro.
-
-[Sinon c'est qu'il y a un bug...](https://github.com/OpenEdition/revuesorg_word_templates/issues)

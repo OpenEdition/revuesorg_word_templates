@@ -89,6 +89,8 @@ fr.menu="Personnes citées"
 fr.style="personnescitees"
 ```
 
+**Remarque concernant les styles natifs.** Le nom des styles natifs de Word est automatiquement pris en charge par Word selon la langue d'installation d'Office. Dans le cas de styles natifs il est donc indispensable de renseigner une valeur `[lang].style` qui corresponde exactement au nom du style natif dans Word dans la langue cible.
+
 #### Clés de traduction par défaut : `menu` et `style`
 
 Les clés `menu` et `style` permettent d'attribuer des traductions par défaut qui seront appliquées si aucune traduction n'est trouvée dans la langue traitée.
@@ -139,15 +141,19 @@ Elle peuvent être combinées aux modificateurs : `Alt`, `Control` (ou `Ctrl`), 
 
 Les styles nativement pris en charge par Word ne sont pas traduits par la macro. Afin d'éviter les erreurs, il convient de les distinguer dans `translations.ini` en leur ajoutant la clé `builtIn` avec la valeur `true`.
 
-Exemple (ici il n'est pas utile d'ajouter de traductions pour le style) :
+Exemple :
 
 ```ini
 [$titre]
 builtIn="true"
 fr.menu="Titre"
+fr.style="Titre"
 en.menu="Title"
+en.style="Title"
 es.menu="Título"
+es.style="Título"
 pt.menu="Título"
+pt.style="Título"
 key="Ctrl+T"
 ```
 

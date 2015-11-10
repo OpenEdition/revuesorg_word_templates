@@ -24,7 +24,6 @@ Télécharger le zip du projet et le décompresser dans le répertoire des modè
 [user]\AppData\Roaming\Microsoft\Templates\
 └── revuesorg_word_templates\
     ├── docs
-    ├── img
     ├── src
     ├── (...)
     ├── template_generator.dot
@@ -97,3 +96,10 @@ Pour compiler l'installateur :
 * Lorsque la compilation est terminée, l'installateur est disponible dans le répertoire `build/win_setup`.
 
 [Voir les informations de compatiblité de l'installateur pour Windows.](setup_win.md)
+
+## En cas de problème
+
+* Vérifier la [FAQ](faq.md).
+* Sinon [c'est qu'il y a un bug...](https://github.com/OpenEdition/revuesorg_word_templates/issues)
+
+
