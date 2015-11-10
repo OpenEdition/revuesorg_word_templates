@@ -1,7 +1,7 @@
 ; INSTALLATEUR DES MODELES ET MACROS WORD POUR REVUES.ORG
 
 #define AppVersion ReadIni(AddBackslash(SourcePath) + "src\translations.ini", "_configuration", "version", '0')
-#define SetupVersion "2"
+#define SetupVersion "3"
 #define AppPublisher "OpenEdition"
 #define AppURL "http://www.openedition.org"
 #define SrcStartupDir "src\startup"
@@ -20,7 +20,7 @@ AppPublisher={#AppPublisher}
 AppPublisherURL={#AppURL}
 AppSupportURL={#AppURL}
 AppUpdatesURL={#AppURL}
-OutputBaseFilename=setup_modeles_revuesorg_{#SetupVersion}
+OutputBaseFilename=setup_modeles_revuesorg_{#AppVersion}.{#SetupVersion}
 VersionInfoProductVersion={#AppVersion}
 VersionInfoVersion={#AppVersion}.{#SetupVersion}
 DefaultDirName="{userpf}\RevuesOrgForWord"
