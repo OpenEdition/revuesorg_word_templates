@@ -70,7 +70,7 @@ var
 
 function Word2007Exists(): Boolean;
 begin
-  Result := RegKeyExists(HKEY_CURRENT_USER, 'Software\Microsoft\Office') and DirExists(ExpandConstant('{userappdata}\Microsoft\Templates')) and DirExists(ExpandConstant('{userappdata}\Microsoft\Word\STARTUP'));
+  Result := DirExists(ExpandConstant('{userappdata}\Microsoft\Templates')) and DirExists(ExpandConstant('{userappdata}\Microsoft\Word\STARTUP'));
 end;
 
 function InitializeSetup(): Boolean;
