@@ -38,30 +38,23 @@ BeveledLabel= {#AppVersion}.{#SetupVersion}
 
 [CustomMessages]
 fr.AppName=Modèles pour Revues.org
-fr.TasksWord2007=Installer les modèles et macros (Word 2007 et ultérieurs)
-fr.TasksVersion=Version de Word :
 fr.WordNotFound=Attention! La détection de Microsoft Word a échoué. Souhaitez-vous quand même poursuivre l'installation ?
 
 en.AppName=Revues.org Templates
-en.TasksWord2007=Install templates and macros (Word 2007 and later)
-en.TasksVersion=Word version:
 en.WordNotFound=Warning! Detection of Microsoft Word has failed. Do you want to force installation?
-
-[Tasks]
-Name: "word2007"; Description: "{cm:TasksWord2007}"; GroupDescription: "{cm:TasksVersion}"; Check: Word2007Exists()
 
 [Languages]
 Name: "fr"; MessagesFile: "compiler:Languages\French.isl"
 Name: "en"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: "{#SrcModelesDir}\*.dot"; DestDir: "{userappdata}\Microsoft\Templates"; Flags: ignoreversion overwritereadonly; Tasks: word2007
-Source: "{#SrcMacrosDir}\*.dot"; DestDir: "{userappdata}\Microsoft\Templates"; Flags: ignoreversion overwritereadonly; Tasks: word2007
-Source: "{#SrcStartupDir}\*.dot"; DestDir: "{userappdata}\Microsoft\Word\STARTUP"; Flags: ignoreversion overwritereadonly; Tasks: word2007
+Source: "{#SrcModelesDir}\*.dot"; DestDir: "{userappdata}\Microsoft\Templates"; Flags: ignoreversion overwritereadonly
+Source: "{#SrcMacrosDir}\*.dot"; DestDir: "{userappdata}\Microsoft\Templates"; Flags: ignoreversion overwritereadonly
+Source: "{#SrcStartupDir}\*.dot"; DestDir: "{userappdata}\Microsoft\Word\STARTUP"; Flags: ignoreversion overwritereadonly
 
 [InstallDelete]
 ; Anciens fichiers à supprimer
-Type: files; Name: "{userappdata}\Microsoft\Templates\revuesorg_complet.dot"; Tasks: word2007
+Type: files; Name: "{userappdata}\Microsoft\Templates\revuesorg_complet.dot"
 
 [Code]
 var
