@@ -88,13 +88,26 @@ begin
   FSWbemLocator := Unassigned;
 end;
 
-function InitializeSetup(): Boolean;
+function CheckCloseWord(): Boolean;
 var
-  AskCloseWord: Boolean;
+  KeepAsking: Boolean;
+begin
+  Result := True;
+  KeepAsking := True;
+  while (IsAppRunning('winword.exe') and KeepAsking) do
+  begin
+    Msg := CustomMessage('PleaseCloseWord');
+    if MsgBox(Msg, mbConfirmation, MB_OKCANCEL) = IDCANCEL then
+    begin
+      KeepAsking := False;
+      Result := False;
+    end;
+  end;
+end;
 
+function InitializeSetup(): Boolean;
 begin
   Log('InitializeSetup called');
-
   // Detection des templates
   Result := True;
   if WordExists() = False then
@@ -106,19 +119,6 @@ begin
       Result := True;
     end;
   end;
-
-  // Ne pas installer si process winword en cours
-  if Result then
-  begin
-      AskCloseWord := True;
-      while (IsAppRunning('winword.exe') and AskCloseWord) do
-      begin
-        Msg := CustomMessage('PleaseCloseWord');
-        if MsgBox(Msg, mbConfirmation, MB_OKCANCEL) = IDCANCEL then
-        begin
-          AskCloseWord := False;
-          Result := False;
-        end;
-      end;
-    end;
+  // Detection processus word en cours
+  Result := Result and CheckCloseWord();
 end;
