@@ -122,3 +122,10 @@ begin
   // Detection processus word en cours
   Result := Result and CheckCloseWord();
 end;
+
+function InitializeUninstall(): Boolean;
+begin
+  Log('InitializeUninstall called');
+  // Detection processus word en cours
+  Result := CheckCloseWord();
+end;
