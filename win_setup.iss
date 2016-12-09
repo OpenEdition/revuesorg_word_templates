@@ -30,7 +30,9 @@ SolidCompression=yes
 WizardImageFile=src\img\logo.bmp
 WizardSmallImageFile=src\img\icon.bmp
 SetupIconFile=src\img\revuesorg.ico
+UninstallDisplayIcon={app}\revuesorg.ico
 OutputDir=build\win_setup
+CloseApplications=yes
 
 [Messages]
 BeveledLabel= {#AppVersion}.{#SetupVersion}
@@ -50,6 +52,7 @@ Name: "en"; MessagesFile: "compiler:Default.isl"
 Source: "{#SrcModelesDir}\*.dot"; DestDir: "{userappdata}\Microsoft\Templates"; Flags: ignoreversion overwritereadonly
 Source: "{#SrcMacrosDir}\*.dot"; DestDir: "{userappdata}\Microsoft\Templates"; Flags: ignoreversion overwritereadonly
 Source: "{#SrcStartupDir}\*.dot"; DestDir: "{userappdata}\Microsoft\Word\STARTUP"; Flags: ignoreversion overwritereadonly
+Source: "src\img\revuesorg.ico"; DestDir: "{app}"; Flags: ignoreversion overwritereadonly
 
 [InstallDelete]
 ; Anciens fichiers à supprimer
