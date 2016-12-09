@@ -40,12 +40,12 @@ BeveledLabel= {#AppVersion}.{#SetupVersion}
 fr.AppName=Modèles pour Revues.org
 fr.TasksWord2007=Installer les modèles et macros (Word 2007 et ultérieurs)
 fr.TasksVersion=Version de Word :
-fr.WordNotFound=Désolé, la détection de Microsoft Word a échoué. L'installation va être abandonnée.
+fr.WordNotFound=Attention! La détection de Microsoft Word a échoué. Souhaitez-vous quand même poursuivre l'installation ?
 
 en.AppName=Revues.org Templates
 en.TasksWord2007=Install templates and macros (Word 2007 and later)
 en.TasksVersion=Word version:
-en.WordNotFound=Sorry, detection of Microsoft Word has failed. The setup will be aborted.
+en.WordNotFound=Warning! Detection of Microsoft Word has failed. Do you want to force installation?
 
 [Tasks]
 Name: "word2007"; Description: "{cm:TasksWord2007}"; GroupDescription: "{cm:TasksVersion}"; Check: Word2007Exists()
@@ -80,8 +80,11 @@ begin
   WordExists := Word2007Exists();
   if WordExists = False then
   begin
-    Msg := CustomMessage('WordNotFound');
-    MsgBox(Msg, mbError, MB_OK);
     Result := False;
+    Msg := CustomMessage('WordNotFound');
+    if MsgBox(Msg, mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES then
+    begin
+      Result := True;
+    end;
   end;
 end;
