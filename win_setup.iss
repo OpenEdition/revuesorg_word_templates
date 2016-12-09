@@ -8,7 +8,6 @@
 #define SrcMacrosDir "src\macros"
 #define SrcModelesDir "build\templates"
 
-
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.
 ; Do not use the same AppId value in installers for other applications.
@@ -58,10 +57,9 @@ Type: files; Name: "{userappdata}\Microsoft\Templates\revuesorg_complet.dot"
 
 [Code]
 var
-  WordExists: Boolean;
   Msg: String;
 
-function Word2007Exists(): Boolean;
+function WordExists(): Boolean;
 begin
   Result := DirExists(ExpandConstant('{userappdata}\Microsoft\Templates')) and DirExists(ExpandConstant('{userappdata}\Microsoft\Word\STARTUP'));
 end;
@@ -70,8 +68,7 @@ function InitializeSetup(): Boolean;
 begin
   Log('InitializeSetup called');
   Result := True;
-  WordExists := Word2007Exists();
-  if WordExists = False then
+  if WordExists() = False then
   begin
     Result := False;
     Msg := CustomMessage('WordNotFound');
