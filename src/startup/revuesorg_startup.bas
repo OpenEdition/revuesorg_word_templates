@@ -121,8 +121,6 @@ Sub doStart(tpl As String)
     AddIns.Add FileName:=macro, Install:=True
     ActiveDocument.UpdateStylesOnOpen = True
     ActiveDocument.AttachedTemplate = tpl
-    ActiveDocument.XMLSchemaReferences.AutomaticValidation = True
-    ActiveDocument.XMLSchemaReferences.AllowSaveAsXMLWithoutValidation = False
     ActiveWindow.View.ShowBookmarks = True
     ' Afficher les noms de substitution quand on change le nom d'un style natif (Word 2007 et supérieurs uniquement)
     If CDbl(Replace(Application.Version, ".", strDecimal)) > 11 Then ActiveDocument.FormattingShowUserStyleName = True
