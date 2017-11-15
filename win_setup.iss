@@ -1,7 +1,7 @@
 ; INSTALLATEUR DES MODELES ET MACROS WORD POUR REVUES.ORG
 
 #define AppVersion ReadIni(AddBackslash(SourcePath) + "src\translations.ini", "_configuration", "version", '0')
-#define SetupVersion "4"
+#define SetupVersion "5"
 #define AppPublisher "OpenEdition"
 #define AppURL "http://www.openedition.org"
 #define SrcStartupDir "src\startup"
@@ -41,19 +41,24 @@ BeveledLabel= {#AppVersion}.{#SetupVersion}
 fr.AppName=Modèles pour Revues.org
 fr.WordNotFound=Attention! La détection de Microsoft Word a échoué. Souhaitez-vous quand même poursuivre l'installation ?
 fr.PleaseCloseWord=Microsoft Word est actuellement en cours d'utilisation. Veuillez quitter tous les processus de Word en cours d'exécution puis cliquer sur OK.
+fr.InstallStartupMacro=Installer aussi le bouton de démarrage rapide (experimental)
 
 en.AppName=Revues.org Templates
 en.WordNotFound=Warning! Detection of Microsoft Word has failed. Do you want to force installation?
 en.PleaseCloseWord=Microsoft Word is currently running. Please exit all Microsoft Word processes before continuing.
+en.InstallStartupMacro=Install Quick Startup button (experimental)
 
 [Languages]
 Name: "fr"; MessagesFile: "compiler:Languages\French.isl"
 Name: "en"; MessagesFile: "compiler:Default.isl"
 
+[Tasks]
+Name: startup_macro; Description: "{cm:InstallStartupMacro}"; Flags: unchecked;
+
 [Files]
 Source: "{#SrcModelesDir}\*.dot"; DestDir: "{userappdata}\Microsoft\Templates"; Flags: ignoreversion overwritereadonly
 Source: "{#SrcMacrosDir}\*.dot"; DestDir: "{userappdata}\Microsoft\Templates"; Flags: ignoreversion overwritereadonly
-Source: "{#SrcStartupDir}\*.dot"; DestDir: "{userappdata}\Microsoft\Word\STARTUP"; Flags: ignoreversion overwritereadonly
+Source: "{#SrcStartupDir}\*.dot"; DestDir: "{userappdata}\Microsoft\Word\STARTUP"; Flags: ignoreversion overwritereadonly; Tasks: startup_macro
 Source: "src\img\revuesorg.ico"; DestDir: "{app}"; Flags: ignoreversion overwritereadonly
 
 [InstallDelete]
