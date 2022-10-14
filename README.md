@@ -1,11 +1,16 @@
+
+# Avertissement 
+
+Ce projet est archivé et n'est plus maintenu.
+
+Les modèles de documents produits avec cet outil sont compatibles avec Microsoft Word jusqu'à la version 2016 pour Windows et jusqu'à la version 2011 pour MacOS.
+
+Pour les versions ultérieurs de Microsoft Word, se reporter au dépôt Gitub suivant : https://github.com/OpenEdition/templates.openedition
+
 # revuesorg_word_templates
 
 **revuesorg_word_templates** est une suite d'outils pour automatiser la traduction et l'installation des modèles pour Microsoft Word. Ce projet a été spécifiquement développé pour générer les modèles de stylage pour Revues.org.
 
-## Avertissement 
-Les modèles de documents produits avec cet outil sont compatibles avec Microsoft Word jusqu'à la version 2016 pour Windows et jusqu'à la version 2011 pour MacOS.
-
-Pour les versions ultérieurs de Microsoft Word, se reporter au dépôt Gitub suivant : https://github.com/OpenEdition/templates.openedition
 
 ## Description
 
